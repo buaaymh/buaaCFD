@@ -8,9 +8,8 @@
 
 namespace buaa {
 namespace riemann {
-
 using Scalar = double;
-using namespace Eigen;
+using Eigen::Matrix;
 
 template <int kDim>
 class Tuple {

@@ -1,6 +1,7 @@
 {
   "git.ignoreLimitWarning": true,
   "files.associations": {
-    "dense": "cpp"
+    "dense": "cpp",
+    "cstddef": "cpp"
   }
 }
