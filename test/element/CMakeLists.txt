@@ -13,7 +13,3 @@ target_include_directories(test_element_triangle PRIVATE ${EIGEN_INC})
 set_target_properties(test_element_triangle PROPERTIES OUTPUT_NAME triangle)
 add_test(NAME TestElementTriangle COMMAND triangle)
 
-# add_executable(test_element_dim2 dim2.cpp)
-# target_include_directories(test_element_dim2 PRIVATE ${EIGEN_INC})
-# set_target_properties(test_element_dim2 PROPERTIES OUTPUT_NAME dim2)
-# add_test(NAME TestElementDim2 COMMAND dim2)
