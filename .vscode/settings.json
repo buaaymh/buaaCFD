@@ -72,6 +72,7 @@
     "valarray": "cpp",
     "variant": "cpp",
     "*.traits": "cpp",
-    "fft": "cpp"
+    "fft": "cpp",
+    "alignedvector3": "cpp"
   }
 }

@@ -3,39 +3,43 @@
 #define INCLUDE_BUAA_ELEMENT_TRIANGLE_HPP_
 
 #include <cmath>
-#include <stdexcept>
+#include <initializer_list>
+#include <vector>
 
 #include <Eigen/Dense>
 
+#include "buaa/element/edge.hpp"
 #include "buaa/element/node.hpp"
 
 namespace buaa {
 namespace element {
 
-template <int kDim>
-class Triangle;
+template <class EdgeData, class CellData>
+class Edge;
 
-template <>
-class Triangle<2> {
+template <int kDim, class EdgeData, class CellData>
+class Triangle {
  public:
   // Types:
-  using NodeType = Node<2>;
+  using Edge = element::Edge<EdgeData, CellData>;
+  using Node = typename Edge::NodeType;
+  using Point = typename Edge::PointType;;
+  using Data = CellData;
   // Constructors:
   Triangle() = default;
-  Triangle(const NodeType& a, const NodeType& b, const NodeType& c)
-      : a_(a), b_(b), c_(c) {
+  Triangle(const Node& a, const Node& b, const Node& c,
+      std::initializer_list<Edge*> edges) : a_(a), b_(b), c_(c), edges_{edges} {
       auto cross = (b_.X() - a_.X()) * (c_.Y() - a_.Y()) -
-                   (b_.Y() - a_.Y()) * (c_.X() - a_.X());
+                   (b_.Y() - a_.Y()) * (c_.X() - a_.X());   
       measure_ = std::abs(cross) * 0.5;
-      center_ = NodeType((a_.X() + b_.X() + c_.X()) / 3,
-                         (a_.Y() + b_.Y() + c_.Y()) / 3);
+      center_ = Point((a + b + c) / 3);
   }
   // Accessors:
   int CountVertices() const { return 3; }
-  const NodeType& A() const { return a_; }
-  const NodeType& B() const { return b_; }
-  const NodeType& C() const { return c_; }
-  const NodeType& GetPoint(int i) const {
+  const Node& A() const { return a_; }
+  const Node& B() const { return b_; }
+  const Node& C() const { return c_; }
+  const Node& GetPoint(int i) const {
     switch (i)  {
     case 0:
       return A();
@@ -49,14 +53,17 @@ class Triangle<2> {
   }
   // Geometric methods:
   Scalar Measure() const {return measure_; }
-  const NodeType& Center() const { return center_; }
+  const Point& Center() const { return center_; }
+  // Data:
+  Data data;
 
  private:
-  const NodeType& a_;
-  const NodeType& b_;
-  const NodeType& c_;
+  const Node& a_;
+  const Node& b_;
+  const Node& c_;
+  std::vector<Edge*> edges_;
   Scalar measure_;
-  NodeType center_;
+  Point center_;
 };
 
 }  // namespace element

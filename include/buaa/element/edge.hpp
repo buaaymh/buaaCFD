@@ -9,10 +9,14 @@
 namespace buaa {
 namespace element {
 
+template <class EdgeData, class CellData>
 class Edge {
  public:
   // Types:
+  using PointType = Point<2>;
   using NodeType = Node<2>;
+  // using Cell = element::Triangle<2, EdgeData, CellData>;
+  using Data = EdgeData;
   // Constructors:
   Edge() = default;
   Edge(const NodeType& head, const NodeType& tail) :
@@ -20,20 +24,16 @@ class Edge {
   // Methods:
   const NodeType& Head() const { return head_; }
   const NodeType& Tail() const { return tail_; }
-  Scalar Measure() const {
-    auto dx = head_.X() - tail_.X();
-    auto dy = head_.Y() - tail_.Y();
-    return std::sqrt(dx * dx + dy * dy);
-  }
-  NodeType Center() const {
-    auto x_c = (head_.X() + tail_.X()) * 0.5;
-    auto y_c = (head_.Y() + tail_.Y()) * 0.5;
-    return NodeType{x_c, y_c};
-  }
+  Scalar Measure() const { return (head_ - tail_).norm(); }
+  PointType Center() const { return PointType((head_ + tail_) * 0.5); }
+  // Data::
+  Data data;
 
  private:
   const NodeType& head_;
   const NodeType& tail_;
+  // Cell* positive_side_{nullptr};
+  // Cell* negative_side_{nullptr};
 };
 
 

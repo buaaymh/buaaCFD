@@ -1,3 +1,8 @@
+add_executable(test_element_point point.cpp)
+target_include_directories(test_element_point PRIVATE ${EIGEN_INC})
+set_target_properties(test_element_point PROPERTIES OUTPUT_NAME point)
+add_test(NAME TestElementPoint COMMAND point)
+
 add_executable(test_element_node node.cpp)
 target_include_directories(test_element_node PRIVATE ${EIGEN_INC})
 set_target_properties(test_element_node PROPERTIES OUTPUT_NAME node)
