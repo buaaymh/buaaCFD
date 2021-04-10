@@ -3,13 +3,14 @@
 #ifndef INCLUDE_BUAA_MESH_DATA_HPP_
 #define INCLUDE_BUAA_MESH_DATA_HPP_
 
-
 namespace buaa {
 namespace mesh {
+
 using Scalar = double;
+using Id = std::size_t;
+
 struct Data {
 };
-
 using Empty = Data;
 
 }  // namespace mesh
