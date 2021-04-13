@@ -22,11 +22,11 @@ TEST_F(TriangleTest, TemplateConstructor) {
 TEST_F(TriangleTest, GeometricMethods) {
   auto cell = TriangleType(a, b, c, {&ab, &bc, &ca});
   EXPECT_EQ(cell.A().X(), a.X());
-  EXPECT_EQ(cell.GetPoint(0).X(), a.X());
+  EXPECT_EQ(cell.GetNode(0).X(), a.X());
   EXPECT_EQ(cell.B().X(), b.X());
-  EXPECT_EQ(cell.GetPoint(1).X(), b.X());
+  EXPECT_EQ(cell.GetNode(1).X(), b.X());
   EXPECT_EQ(cell.C().X(), c.X());
-  EXPECT_EQ(cell.GetPoint(2).X(), c.X());
+  EXPECT_EQ(cell.GetNode(2).X(), c.X());
   EXPECT_EQ(cell.Measure(), 0.5);
   auto node = cell.Center();
   EXPECT_EQ(node.X() * 3, a.X() + b.X() + c.X());

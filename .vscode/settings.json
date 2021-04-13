@@ -75,6 +75,7 @@
     "fft": "cpp",
     "alignedvector3": "cpp",
     "adolcforward": "cpp",
-    "mprealsupport": "cpp"
+    "mprealsupport": "cpp",
+    "cassert": "cpp"
   }
 }

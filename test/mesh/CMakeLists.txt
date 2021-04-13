@@ -1,4 +1,10 @@
 add_executable(test_mesh_dim2 dim2.cpp)
-target_include_directories(test_mesh_dim2 PRIVATE ${EIGEN_INC})
 set_target_properties(test_mesh_dim2 PROPERTIES OUTPUT_NAME dim2)
 add_test(NAME TestMeshDim2 COMMAND dim2)
+
+if (${PROJECT_NAME}_ENABLE_VTK)
+  link_libraries(${VTK_LIBRARIES})
+  add_executable(test_mesh_vtk vtk.cpp)
+  set_target_properties(test_mesh_vtk PROPERTIES OUTPUT_NAME vtk)
+  add_test(NAME TestMeshVtk COMMAND vtk)
+endif (${PROJECT_NAME}_ENABLE_VTK)

@@ -39,7 +39,7 @@ class Triangle {
   const Node& A() const { return a_; }
   const Node& B() const { return b_; }
   const Node& C() const { return c_; }
-  const Node& GetPoint(int i) const {
+  const Node& GetNode(int i) const {
     switch (i)  {
     case 0:
       return A();

@@ -106,6 +106,33 @@ TEST_F(MeshTest, EmplaceCell) {
   EXPECT_EQ(mesh.CountCells(), 2);
   EXPECT_EQ(mesh.CountEdges(), 5);
 }
+TEST_F(MeshTest, ForEachCell) {
+  /*
+     3 ----- 2
+     | (0) / |
+     |   /   |
+     | / (1) |
+     0 ----- 1
+  */
+  // Emplace 4 nodes:
+  for (auto n = 0; n != x.size(); ++n) {
+    mesh.EmplaceNode(n, x[n], y[n]);
+  }
+  EXPECT_EQ(mesh.CountNodes(), x.size());
+  // Emplace 2 triangular cells:
+  mesh.SetEdgesNum(5);
+  mesh.SetCellsNum(2);
+  EXPECT_EQ(mesh.CountEdges(), 0);
+  EXPECT_EQ(mesh.CountCells(), 0);
+  mesh.EmplaceCell(0, {0, 1, 2});
+  mesh.EmplaceCell(1, {0, 2, 3});
+  EXPECT_EQ(mesh.CountCells(), 2);
+  EXPECT_EQ(mesh.CountEdges(), 5);
+  // For each cell: head's index < tail's index
+  mesh.ForEachCell([](CellType const& cell) {
+    EXPECT_EQ(cell.Measure(), 0.5);
+  });
+}
 TEST_F(MeshTest, GetSide) {
   /*
      3 -- [2] -- 2

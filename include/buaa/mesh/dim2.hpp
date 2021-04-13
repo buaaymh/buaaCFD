@@ -1,7 +1,7 @@
 // Copyright 2021 Minghao Yang
 
-#ifndef BUAA_MESH_DIM2_HPP_
-#define BUAA_MESH_DIM2_HPP_
+#ifndef INCLUDE_BUAA_MESH_DIM2_HPP_
+#define INCLUDE_BUAA_MESH_DIM2_HPP_
 
 #include <algorithm>
 #include <array>
@@ -99,13 +99,21 @@ class Mesh {
     auto edges = {ab, bc, ca};
     auto cell_unique_ptr = std::make_unique<Cell>(*a, *b, *c, edges);
     auto cell_ptr = cell_unique_ptr.get();
-    assert(id_to_cell_.size() == int(i));
     id_to_cell_.emplace_back(std::move(cell_unique_ptr));
     LinkCellToEdge(cell_ptr, p[0], p[1], ab);
     LinkCellToEdge(cell_ptr, p[1], p[2], bc);
     LinkCellToEdge(cell_ptr, p[2], p[0], ca);
     return cell_ptr;
   }
+  void Clear() {
+    id_to_node_.clear();
+    id_to_edge_.clear();
+    id_to_cell_.clear();
+    node_pair_to_edge_.clear();
+  }
+  static constexpr int Dim() { return 2; }
+
+ private:
   void LinkCellToEdge(Cell* cell, NodeId head_id, NodeId tail_id,
                       Edge* edge) {
     if (head_id < tail_id) {
@@ -120,13 +128,6 @@ class Mesh {
     auto cross = ab.X() * ac.Y() - ab.Y() * ac.X();
     return cross < 0;
   }
-  static constexpr int Dim() { return 2; }
-  void Clear() {
-    id_to_node_.clear();
-    id_to_edge_.clear();
-    id_to_cell_.clear();
-    node_pair_to_edge_.clear();
-  }
 
  private:
   std::vector<std::unique_ptr<Node>> id_to_node_;
@@ -138,4 +139,4 @@ class Mesh {
 }  // namespace mesh
 }  // namespace buaa
 
-#endif  // BUAA_MESH_DIM2_HPP_
+#endif  // INCLUDE_BUAA_MESH_DIM2_HPP_
