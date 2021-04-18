@@ -129,7 +129,9 @@ TEST_F(MeshTest, ForEachCell) {
   EXPECT_EQ(mesh.CountCells(), 2);
   EXPECT_EQ(mesh.CountEdges(), 5);
   // For each cell: head's index < tail's index
-  mesh.ForEachCell([](CellType const& cell) {
+  Id id{0};
+  mesh.ForEachCell([&](CellType const& cell) {
+    EXPECT_EQ(cell.I(), id++);
     EXPECT_EQ(cell.Measure(), 0.5);
   });
 }

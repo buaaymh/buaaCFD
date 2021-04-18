@@ -76,6 +76,7 @@
     "alignedvector3": "cpp",
     "adolcforward": "cpp",
     "mprealsupport": "cpp",
-    "cassert": "cpp"
+    "cassert": "cpp",
+    "*.expression": "cpp"
   }
 }

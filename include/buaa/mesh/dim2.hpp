@@ -19,10 +19,14 @@
 #include "buaa/element/node.hpp"
 #include "buaa/element/edge.hpp"
 #include "buaa/element/triangle.hpp"
-#include "buaa/mesh/data.hpp"
+#include "buaa/element/data.hpp"
 
 namespace buaa {
 namespace mesh {
+
+using Id = element::Id;
+using Scalar = element::Scalar;
+using Empty = element::Empty;
 
 template <class EdgeData = Empty,
           class CellData = Empty>
@@ -97,7 +101,7 @@ class Mesh {
     auto bc = EmplaceEdge(p[1], p[2]);
     auto ca = EmplaceEdge(p[2], p[0]);
     auto edges = {ab, bc, ca};
-    auto cell_unique_ptr = std::make_unique<Cell>(*a, *b, *c, edges);
+    auto cell_unique_ptr = std::make_unique<Cell>(i, *a, *b, *c, edges);
     auto cell_ptr = cell_unique_ptr.get();
     id_to_cell_.emplace_back(std::move(cell_unique_ptr));
     LinkCellToEdge(cell_ptr, p[0], p[1], ab);

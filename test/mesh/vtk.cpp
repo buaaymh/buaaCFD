@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "buaa/mesh/data.hpp"
+#include "buaa/element/data.hpp"
 #include "buaa/mesh/dim2.hpp"
 #include "buaa/mesh/vtk/reader.hpp"
 #include "buaa/mesh/vtk/writer.hpp"
