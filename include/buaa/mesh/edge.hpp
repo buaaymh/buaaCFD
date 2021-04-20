@@ -7,67 +7,86 @@
 
 #include <Eigen/Dense>
 
+#include "buaa/mesh/data.hpp"
 #include "buaa/element/edge.hpp"
-#include "buaa/mesh/dim2.hpp"
+// #include "buaa/mesh/dim2.hpp"
+#include "buaa/mesh/gauss.hpp"
 // #include "buaa/mesh/triangle.hpp"
 
 namespace buaa {
 namespace mesh {
 
-template <int Order, class CellData, class EdgeData>
+template <int kDegree, class CellData, class EdgeData>
 class Triangle;
 
-template <int   Order,
+template <int   kDegree,
           class EdgeData = Empty,
           class CellData = Empty>
 class Edge;
 
-template <int Order, class EdgeData, class CellData>
-class Edge : public element::Edge<EdgeData, CellData> {
+template <int kDegree, class EdgeData, class CellData>
+class Edge : public element::Edge {
  private:
-  static constexpr int num_coefficients = (Order+1) * (Order+2) / 2 - 1;
-  static constexpr int num_quad_points = int(Order/2)+1;
-  
+  static constexpr int num_quad_points = int(kDegree / 2) + 1;
+  static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
   // Types:
-  using Base = element::Edge<EdgeData, CellData>;
+  using Base = element::Edge;
   using Point = element::Point<2>;
   using Node = element::Node<2>;
-  using Cell = Triangle<2, Order, CellData, EdgeData>;
+  using Cell = Triangle<kDegree, CellData, EdgeData>;
+  using Gauss = mesh::Gauss<num_quad_points>;
   using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
+  using Data = EdgeData;
   // Constructors:
   Edge() = default;
-  Edge(const Node& head, const Node& tail) : Base(head, tail) {}
-  // template<class... Args>
-  // explicit Edge(Args&&... args) : Base{std::forward<Args>(args)...} {}
-
+  Edge(const Node& head, const Node& tail) : Base(head, tail) {
+    for (int i = 0; i < num_quad_points; ++i) {
+      quad_points_[i] = LocalToGlobal(gauss_.x_local[i]);
+    }
+  }
   // Accessors:
   Cell* GetPositiveSide() const { return positive_side_; }
   Cell* GetNegativeSide() const { return negative_side_; }
-  // Mutators:
+  // // Mutators:
   void SetPositiveSide(Cell* cell) { positive_side_ = cell; }
   void SetNegativeSide(Cell* cell) { negative_side_ = cell; }
   // Accessors:
-  static constexpr int GetOrder() { return Order; }
+  static constexpr int Degree() { return kDegree; }
   static constexpr int CountQuadPoints() { return num_quad_points; }
   static constexpr int CountCoefficients() { return num_coefficients; }
-  const Matrix& B() const { return b_matrix; }
+  static Gauss GetGauss() { return gauss_; }
   // Methods:
   template <class Visitor>
   void ForEachQuadPoint(Visitor&& visitor) const {
     for (auto& point : quad_points_) { visitor(point); }
   }
+  template <class Integrand>
+  Scalar Integrate(Integrand&& integrand) const {
+    Scalar result = 0.0;
+    for (int i = 0; i < num_quad_points; ++i) {
+      result += integrand(quad_points_[i]) * gauss_.weights[i];
+    }
+    return result * 0.5 * Measure();
+  }
+  // Data:
+  Data data;
+  Matrix b_matrix;
 
  private:
-  std::array<Point, num_quad_points> quad_points_;
-  Matrix b_matrix;
+  Point LocalToGlobal(Scalar x_local) {
+    auto point = ((Head() + Tail()) + (Tail() - Head()) * x_local) * 0.5;
+    return Point{point(0), point(1)};
+  }
+
+ private:
   Cell* positive_side_{nullptr};
   Cell* negative_side_{nullptr};
-
+  static constexpr Gauss gauss_ = Gauss();
+  std::array<Point, num_quad_points> quad_points_;
 };
 
-
-}  // namespace element
+}  // namespace mesh
 }  // namespace buaa
 
 #endif  //  INCLUDE_BUAA_MESH_EDGE_HPP_

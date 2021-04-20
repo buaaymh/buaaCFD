@@ -4,7 +4,7 @@
 #define INCLUDE_BUAA_ELEMENT_DATA_HPP_
 
 namespace buaa {
-namespace element {
+namespace mesh {
 
 using Scalar = double;
 using Id = std::size_t;
@@ -13,7 +13,7 @@ struct Data {
 };
 using Empty = Data;
 
-}  // namespace element
+}  // namespace mesh
 }  // namespace buaa
 
 #endif  // INCLUDE_BUAA_ELEMENT_DATA_HPP_

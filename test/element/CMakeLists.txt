@@ -6,6 +6,10 @@ add_executable(test_element_node node.cpp)
 set_target_properties(test_element_node PROPERTIES OUTPUT_NAME node)
 add_test(NAME TestElementNode COMMAND node)
 
+add_executable(test_mesh_gauss gauss.cpp)
+set_target_properties(test_mesh_gauss PROPERTIES OUTPUT_NAME gauss)
+add_test(NAME TestMeshGauss COMMAND gauss)
+
 add_executable(test_element_edge edge.cpp)
 set_target_properties(test_element_edge PROPERTIES OUTPUT_NAME edge)
 add_test(NAME TestElementEdge COMMAND edge)
