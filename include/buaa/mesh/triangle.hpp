@@ -7,7 +7,6 @@
 #include <Eigen/Dense>
 
 #include "buaa/element/triangle.hpp"
-#include "buaa/mesh/basis.hpp"
 #include "buaa/mesh/edge.hpp"
 #include "buaa/mesh/data.hpp"
 
@@ -18,18 +17,17 @@ template <int kDegree, class EdgeData, class CellData>
 class Edge;
 
 template <int   kDegree,
-          class CellData = Empty,
-          class EdgeData = Empty>
+          class EdgeData = Empty,
+          class CellData = Empty>
 class Triangle;
 
-template <int kDegree, class CellData, class EdgeData>
-class Triangle : public element::Triangle {
+template <int kDegree, class EdgeData, class CellData>
+class Triangle : public element::Triangle<kDegree> {
  private:
   static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
   // Types:
-  using Base = element::Triangle;
-  using Basis = mesh::Basis<kDegree>;
+  using Base = element::Triangle<kDegree>;
   using EdgeType = Edge<kDegree, EdgeData, CellData>;
   using NodeType = element::Node<2>;
   using PointType = element::Point<2>;
@@ -40,11 +38,9 @@ class Triangle : public element::Triangle {
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c,
       EdgeType* ab, EdgeType* bc, EdgeType* ca) : Base(id, a, b, c),
-      edges_{ab, bc, ca}, basis_{this} {}
+      edges_{ab, bc, ca} {}
   // Accessors:
-  static constexpr int Degree() { return kDegree; }
   static constexpr int CountCoefficients() { return num_coefficients; }
-  const Basis& GetBasis() const { return basis_; }
   // Iterators:
   template <class Visitor>
   void ForEachEdge(Visitor&& visitor) { for(auto& e : edges_) {visitor(*e);} }
@@ -55,7 +51,6 @@ class Triangle : public element::Triangle {
 
  private:
   std::array<EdgeType*, 3> edges_;
-  const Basis basis_;
 };
 
 }  // namespace mesh

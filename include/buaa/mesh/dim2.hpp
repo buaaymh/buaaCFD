@@ -4,41 +4,35 @@
 #define INCLUDE_BUAA_MESH_DIM2_HPP_
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
-#include <forward_list>
 #include <initializer_list>
 #include <map>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
 #include "buaa/element/node.hpp"
-#include "buaa/element/edge.hpp"
-#include "buaa/element/triangle.hpp"
-#include "buaa/element/data.hpp"
+#include "buaa/mesh/edge.hpp"
+#include "buaa/mesh/triangle.hpp"
+#include "buaa/mesh/data.hpp"
 
 namespace buaa {
 namespace mesh {
 
-using Id = element::Id;
-using Scalar = element::Scalar;
-using Empty = element::Empty;
-
-template <class EdgeData = Empty,
+template <int kDegree,
+          class EdgeData = Empty,
           class CellData = Empty>
 class Mesh;
 
-template <class EdgeData, class CellData>
+template <int kDegree, class EdgeData, class CellData>
 class Mesh {
  public:
-  using Cell = typename element::Triangle<2, EdgeData, CellData>;
-  using Edge = typename Cell::Edge;
-  using Node = typename Cell::Node;
-  using Point = typename Cell::Point;
+  using Cell = mesh::Triangle<kDegree, EdgeData, CellData>;
+  using Edge = typename Cell::EdgeType;
+  using Node = typename Cell::NodeType;
+  using Point = typename Cell::PointType;
   using NodeId = Id;
   using EdgeId = Id;
   using CellId = Id;
@@ -101,7 +95,7 @@ class Mesh {
     auto bc = EmplaceEdge(p[1], p[2]);
     auto ca = EmplaceEdge(p[2], p[0]);
     auto edges = {ab, bc, ca};
-    auto cell_unique_ptr = std::make_unique<Cell>(i, *a, *b, *c, edges);
+    auto cell_unique_ptr = std::make_unique<Cell>(i, *a, *b, *c, ab, bc, ca);
     auto cell_ptr = cell_unique_ptr.get();
     id_to_cell_.emplace_back(std::move(cell_unique_ptr));
     LinkCellToEdge(cell_ptr, p[0], p[1], ab);

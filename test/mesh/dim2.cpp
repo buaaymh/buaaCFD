@@ -11,7 +11,7 @@ namespace mesh {
 
 class MeshTest : public ::testing::Test {
  protected:
-  using MeshType = Mesh<>;
+  using MeshType = Mesh<3, Empty, Empty>;
   using CellType = MeshType::Cell;
   using EdgeType = MeshType::Edge;
   using NodeType = MeshType::Node;

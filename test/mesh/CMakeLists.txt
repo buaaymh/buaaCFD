@@ -1,6 +1,6 @@
-# add_executable(test_mesh_dim2 dim2.cpp)
-# set_target_properties(test_mesh_dim2 PROPERTIES OUTPUT_NAME dim2)
-# add_test(NAME TestMeshDim2 COMMAND dim2)
+add_executable(test_mesh_dim2 dim2.cpp)
+set_target_properties(test_mesh_dim2 PROPERTIES OUTPUT_NAME dim2)
+add_test(NAME TestMeshDim2 COMMAND dim2)
 
 # if (${PROJECT_NAME}_ENABLE_VTK)
 #   link_libraries(${VTK_LIBRARIES})
