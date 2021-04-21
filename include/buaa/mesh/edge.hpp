@@ -28,7 +28,7 @@ class Edge : public element::Edge<kDegree> {
   static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
   // Types:
-  using Cell = Triangle<kDegree, CellData, EdgeData>;
+  using Cell = Triangle<kDegree, EdgeData, CellData>;
   using Base = element::Edge<kDegree>;
   using Point = element::Point<2>;
   using Node = element::Node<2>;

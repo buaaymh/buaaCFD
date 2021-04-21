@@ -1,4 +1,4 @@
-LC = 2;  // average length of cell edges, a.k.a. characteristic length
+LC = 0.1;  // average length of cell edges, a.k.a. characteristic length
 LX = 2;  // half length along x-axis
 LY = 1;  // half length along y-axis
 // Create the MIDDLE line:

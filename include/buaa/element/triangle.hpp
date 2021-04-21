@@ -33,7 +33,7 @@ class Triangle<0> {
   }
   // Accessors:
   Id I() const { return id_; }
-  int CountVertices() const { return 3; }
+  static constexpr int CountVertices() { return 3; }
   const NodeType& A() const { return a_; }
   const NodeType& B() const { return b_; }
   const NodeType& C() const { return c_; }

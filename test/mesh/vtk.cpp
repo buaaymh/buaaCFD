@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "buaa/element/data.hpp"
+#include "buaa/mesh/data.hpp"
 #include "buaa/mesh/dim2.hpp"
 #include "buaa/mesh/vtk/reader.hpp"
 #include "buaa/mesh/vtk/writer.hpp"
@@ -17,7 +17,7 @@ namespace vtk {
 
 class ReaderTest : public ::testing::Test {
  protected:
-  using MeshType = Mesh<>;
+  using MeshType = Mesh<0>;
   using CellType = MeshType::Cell;
   Reader<MeshType> reader;
   const std::string test_data_dir_{TEST_DATA_DIR};
@@ -50,8 +50,8 @@ class WriterTest : public ::testing::Test {
 };
 const char* WriterTest::mesh_name;
 TEST_F(WriterTest, TinyMesh) {
-  auto reader = Reader<Mesh<>>();
-  auto writer = Writer<Mesh<>>();
+  auto reader = Reader<Mesh<0>>();
+  auto writer = Writer<Mesh<0>>();
   for (auto suffix : {".vtk", ".vtu"}) {
     reader.ReadFromFile(test_data_dir_ + "/tiny" + suffix);
     auto mesh_old = reader.GetMesh();
@@ -71,6 +71,44 @@ TEST_F(WriterTest, TinyMesh) {
     EXPECT_EQ(mesh_old->CountCells(),
               mesh_new->CountCells());
   }
+}
+TEST_F(WriterTest, MeshWithData) {
+  using CellData = mesh::Data<2, 2, 2>;
+  using MeshType = Mesh<0, Empty, CellData>;
+  // using MeshType = Mesh<0, Empty, Empty>;
+  auto reader = Reader<MeshType>();
+  auto writer = Writer<MeshType>();
+  reader.ReadFromFile(test_data_dir_ + "/medium.vtk");
+  auto mesh_old = reader.GetMesh();
+  ASSERT_TRUE(mesh_old);
+  // Create some data on it:
+  MeshType::Cell::scalar_names.at(0) = "X + Y";
+  MeshType::Cell::scalar_names.at(1) = "X - Y";
+  MeshType::Cell::vector_names.at(0) = "(X, Y)";
+  MeshType::Cell::vector_names.at(1) = "(-X, -Y)";
+  mesh_old->ForEachCell([](MeshType::Cell& cell) {
+    auto center = cell.Center();
+    auto y = center.Y();
+    auto x = center.X();
+    cell.data.scalars.at(0) = x + y;
+    cell.data.scalars.at(1) = x - y;
+    cell.data.vectors.at(0) = {x, y};
+    cell.data.vectors.at(1) = {-x, -y};
+  });
+  // Write the mesh just read:
+  writer.SetMesh(mesh_old.get());
+  auto filename = test_data_dir_ + std::string("/medium.vtu");
+  ASSERT_TRUE(writer.WriteToFile(filename));
+  // Read the mesh just written:
+  reader.ReadFromFile(test_data_dir_ + "/medium.vtu");
+  auto mesh_new = reader.GetMesh();
+  // Check consistency:
+  EXPECT_EQ(mesh_old->CountNodes(),
+            mesh_new->CountNodes());
+  EXPECT_EQ(mesh_old->CountEdges(),
+            mesh_new->CountEdges());
+  EXPECT_EQ(mesh_old->CountCells(),
+            mesh_new->CountCells());
 }
 
 }  // namespace vtk

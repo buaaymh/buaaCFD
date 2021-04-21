@@ -3,6 +3,7 @@
 #define INCLUDE_BUAA_MESH_TRIANGLE_HPP_
 
 #include <array>
+#include <string>
 
 #include <Eigen/Dense>
 
@@ -48,10 +49,20 @@ class Triangle : public element::Triangle<kDegree> {
   Data data;
   Matrix a_matrix;
   Vector b_vector;
+  static std::array<std::string, CellData::CountScalars()> scalar_names;
+  static std::array<std::string, CellData::CountVectors()> vector_names;
 
  private:
   std::array<EdgeType*, 3> edges_;
 };
+
+template <int kDegree, class EdgeData, class CellData>
+std::array<std::string, CellData::CountScalars()>
+Triangle<kDegree, EdgeData, CellData>::scalar_names;
+
+template <int kDegree, class EdgeData, class CellData>
+std::array<std::string, CellData::CountVectors()>
+Triangle<kDegree, EdgeData, CellData>::vector_names;
 
 }  // namespace mesh
 }  // namespace buaa
