@@ -17,6 +17,7 @@ class Simple {
   using Vector = typename Base::Vector;
   using State = typename Base::State;
   using Flux = typename Base::Flux;
+  using Jacobi = typename Base::Jacobi;
   using Coefficient = Vector;
   void Rotate(Vector const& normal) {
     Rotate(normal(0), normal(1));
@@ -44,6 +45,8 @@ class Simple {
 template <class UnrotatedSimple>
 typename Simple<UnrotatedSimple>::Coefficient
 Simple<UnrotatedSimple>::global_coefficient;
+
+using RotatedLinear = Simple<Linear>;
 
 template <class UnrotatedEuler>
 class RotatedEuler {

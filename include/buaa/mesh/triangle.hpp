@@ -47,7 +47,7 @@ class Triangle : public element::Triangle<kDegree> {
   void ForEachEdge(Visitor&& visitor) { for(auto& e : edges_) {visitor(*e);} }
   // Data:
   Data data;
-  Matrix a_matrix;
+  Matrix a_matrix_inv;
   Vector b_vector;
   static std::array<std::string, CellData::CountScalars()> scalar_names;
   static std::array<std::string, CellData::CountVectors()> vector_names;

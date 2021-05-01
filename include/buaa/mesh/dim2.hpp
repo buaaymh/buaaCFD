@@ -11,7 +11,7 @@
 #include <map>
 #include <memory>
 #include <utility>
-#include <vector>
+#include <iostream>
 
 #include "buaa/element/node.hpp"
 #include "buaa/mesh/edge.hpp"
@@ -91,16 +91,16 @@ class Mesh {
     if (IsClockWise(*a, *b, *c)) {
       std::swap(a, c);
     }
-    auto ab = EmplaceEdge(p[0], p[1]);
-    auto bc = EmplaceEdge(p[1], p[2]);
-    auto ca = EmplaceEdge(p[2], p[0]);
+    auto ab = EmplaceEdge(a->I(), b->I());
+    auto bc = EmplaceEdge(b->I(), c->I());
+    auto ca = EmplaceEdge(c->I(), a->I());
     auto edges = {ab, bc, ca};
     auto cell_unique_ptr = std::make_unique<Cell>(i, *a, *b, *c, ab, bc, ca);
     auto cell_ptr = cell_unique_ptr.get();
     id_to_cell_.emplace_back(std::move(cell_unique_ptr));
-    LinkCellToEdge(cell_ptr, p[0], p[1], ab);
-    LinkCellToEdge(cell_ptr, p[1], p[2], bc);
-    LinkCellToEdge(cell_ptr, p[2], p[0], ca);
+    LinkCellToEdge(cell_ptr, a->I(), b->I(), ab);
+    LinkCellToEdge(cell_ptr, b->I(), c->I(), bc);
+    LinkCellToEdge(cell_ptr, c->I(), a->I(), ca);
     return cell_ptr;
   }
   void Clear() {
@@ -133,6 +133,7 @@ class Mesh {
   std::vector<std::unique_ptr<Cell>> id_to_cell_;
   std::map<std::pair<NodeId, NodeId>, Edge*> node_pair_to_edge_;
 };
+
 
 }  // namespace mesh
 }  // namespace buaa

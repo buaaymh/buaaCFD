@@ -40,6 +40,10 @@ class Edge : public element::Edge<kDegree> {
   // Accessors:
   Cell* GetPositiveSide() const { return positive_side_; }
   Cell* GetNegativeSide() const { return negative_side_; }
+  Cell* GetOpposite(Cell* cell) const {
+    if (cell == positive_side_) { return negative_side_; }
+    else { return positive_side_; }
+  }
   // // Mutators:
   void SetPositiveSide(Cell* cell) { positive_side_ = cell; }
   void SetNegativeSide(Cell* cell) { negative_side_ = cell; }
@@ -53,6 +57,8 @@ class Edge : public element::Edge<kDegree> {
   Cell* positive_side_{nullptr};
   Cell* negative_side_{nullptr};
 };
+
+
 
 }  // namespace mesh
 }  // namespace buaa

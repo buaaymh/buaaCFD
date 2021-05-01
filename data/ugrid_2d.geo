@@ -1,6 +1,6 @@
 LC = 0.1;  // average length of cell edges, a.k.a. characteristic length
-LX = 2;  // half length along x-axis
-LY = 1;  // half length along y-axis
+LX = 1;  // half length along x-axis
+LY = 0.1;  // half length along y-axis
 // Create the MIDDLE line:
 Point(1) = { 0, -LY, 0, LC };
 Point(2) = { 0, +LY, 0, LC };
@@ -19,7 +19,6 @@ out[] = Extrude{ +LX, 0, 0 }{ Curve{1}; };
 Physical Surface("RIGHT") = { out[1] };
 Physical Curve("OPEN") += { out[0] };
 Physical Curve("WALL") += { out[2], out[3] };
-Transfinite Curve{ out[2], out[3] } = 1*LX/LC + 1;
-Transfinite Curve{ out[0], 1      } = 2*LY/LC + 1;
-Transfinite Surface{ out[1] };
-// Recombine Surface{ out[1] };
+// Transfinite Curve{ out[2], out[3] } = 1*LX/LC + 1;
+// Transfinite Curve{ out[0], 1      } = 2*LY/LC + 1;
+// Transfinite Surface{ out[1] };

@@ -74,6 +74,7 @@ class Reader {
   void ReadCells(vtkDataSet* vtk_data_set) {
     int n = vtk_data_set->GetNumberOfCells();
     mesh_->SetCellsNum(n);
+    auto n_cell = 0;
     for (int i = 0; i < n; i++) {
       auto cell = vtk_data_set->GetCell(i);
       auto type = vtk_data_set->GetCellType(i);
@@ -82,7 +83,7 @@ class Reader {
         IdType a = id_list->GetId(0);
         IdType b = id_list->GetId(1);
         IdType c = id_list->GetId(2);
-        mesh_->EmplaceCell(i, {a, b, c});
+        mesh_->EmplaceCell(n_cell++, {a, b, c});
       } else {
         continue;
       }

@@ -1,0 +1,6 @@
+if (${PROJECT_NAME}_ENABLE_VTK)
+  link_libraries(${VTK_LIBRARIES})
+  add_executable(demo_single_model model.cpp)
+  set_target_properties(demo_single_model PROPERTIES OUTPUT_NAME model)
+  add_test(NAME DemoSingleModel COMMAND model)
+endif (${PROJECT_NAME}_ENABLE_VTK)

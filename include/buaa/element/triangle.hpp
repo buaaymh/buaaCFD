@@ -68,7 +68,6 @@ class Triangle<0> {
   // Geometric methods:
   Scalar Measure() const { return measure_; }
   const PointType& Center() const { return center_; }
-
  private:
   Scalar GetMeasure(const NodeType& a, const NodeType& b, const NodeType& c) {
     auto cross = (b.X() - a.X()) * (c.Y() - a.Y()) -

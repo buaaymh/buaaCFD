@@ -75,3 +75,10 @@ if (${PROJECT_NAME}_BUILD_TESTS)
   include(CTest)
   add_subdirectory(test)
 endif ()
+
+add_subdirectory(demo)
+
+# option(${PROJECT_NAME}_BUILD_DEMOS "Build demos for this project." "ON")
+# if (${PROJECT_NAME}_BUILD_DEMOS)
+#   add_subdirectory(demo)
+# endif (${PROJECT_NAME}_BUILD_DEMOS)

@@ -13,8 +13,9 @@ class Linear {
   // Types:
   using Vector = Matrix<Scalar, kDim, 1>;
   using Coefficient = Matrix<Scalar, kDim, 1>;
-  using State = Scalar;
   using Flux = Scalar;
+  using Jacobi = double;
+  using State = Scalar;
   // Constructor:
   Linear() : a_const_(1) {}
   explicit Linear(Scalar const& a_const) : a_const_(a_const) {}
