@@ -142,6 +142,15 @@ TEST_F(TriangleTest, Integrator) {
   auto integrand_4 = [](auto point) { return point.X() * point.X() * point.Y(); };
   EXPECT_NEAR(cell.Integrate(integrand_4), 2.0/3-0.6, eps);
 }
+TEST_F(TriangleTest, Factorial) {
+  auto cell = T3(id, a, b, c);
+  EXPECT_EQ(cell.Factorial(0), 1);
+  EXPECT_EQ(cell.Factorial(1), 1);
+  EXPECT_EQ(cell.Factorial(2), 2);
+  EXPECT_EQ(cell.Factorial(3), 6);
+  EXPECT_EQ(cell.Factorial(4), 24);
+}
+
 
 }  // namespace element
 }  // namespace buaa

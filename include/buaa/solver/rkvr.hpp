@@ -18,6 +18,7 @@ namespace solver {
 
 template <class Mesh, class Riemann>
 class Rkvr {
+  using PointType = typename Mesh::Point;
   using EdgeType = typename Mesh::Edge;
   using CellType = typename Mesh::Cell;
   using State = typename Riemann::State;
@@ -127,15 +128,21 @@ class Rkvr {
     });
   }
   void GetFluxOnEachEdge(int stage) {
-    // UpdataCoefficients(stage);
+    UpdataCoefficients(stage);
     mesh_->ForEachEdge([&](EdgeType& edge) {
       auto& riemann_ = edge.data.riemann;
       auto cell_l = edge.GetPositiveSide();
       auto cell_r = edge.GetNegativeSide();
-      auto const& u_l = cell_l->data.u_stages[stage];
-      auto const& u_r = cell_r->data.u_stages[stage];
-      edge.data.flux = riemann_.GetFluxOnTimeAxis(u_l, u_r);
-      edge.data.flux *= edge.Measure();
+      edge.data.flux = edge.Integrate([&](const PointType& point) {
+        auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
+        auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
+        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+      });
+
+      // auto const& u_l = cell_l->data.u_stages[stage];
+      // auto const& u_r = cell_r->data.u_stages[stage];
+      // edge.data.flux = riemann_.GetFluxOnTimeAxis(u_l, u_r);
+      // edge.data.flux *= edge.Measure();
     });
   }
 
@@ -151,19 +158,28 @@ class Rkvr {
     return rhs;
   }
   void InitializeVrMatrix() {
-    mesh_->ForEachCell([&](CellType& cell) {
-      // cell.InitializeAinv();
-    });
     mesh_->ForEachEdge([&](EdgeType& edge) {
-      // edge.InitializeBmat();
+      edge.InitializeBmat();
+    });
+    mesh_->ForEachCell([&](CellType& cell) {
+      cell.InitializeAmatInv();
+      cell.InitializeBvecMat();
     });
   }
   void UpdataCoefficients(int stage) {
+    mesh_->ForEachCell([&](CellType& cell) {
+      Eigen::Matrix<Scalar, 3, 1> vec;
+      int i = 0;
+      cell.ForEachEdge([&](EdgeType& edge) {
+        vec(i++) = edge.GetOpposite(&cell)->data.u_stages[stage] - cell.data.u_stages[stage];
+      });
+      cell.b_vector = cell.b_vector_mat * vec;
+    });
     for (int i = 0; i < 5; ++i) {
       mesh_->ForEachCell([&](CellType& cell) {
         cell.data.coefficients = -0.3 * cell.data.coefficients;
-        cell.ForEachEdge([&](CellType& edge) {
-          auto neighber = edge.GetOpposite(&cell);
+        cell.ForEachEdge([&](EdgeType& edge) {
+          CellType* neighber = edge.GetOpposite(&cell);
           if (neighber->I() < cell.I()) {
             cell.data.coefficients += cell.a_matrix_inv * edge.b_matrix *
                 neighber->data.coefficients * 1.3;
@@ -171,8 +187,7 @@ class Rkvr {
             cell.data.coefficients += cell.a_matrix_inv * edge.b_matrix.transpose() *
                 neighber->data.coefficients * 1.3;
           }
-          cell.data.coefficients += cell.a_matrix_inv * cell.b_vector * 1.3 *
-              (neighber->data.u_stages[stage] - cell.data.u_stages[stage]);
+          cell.data.coefficients += cell.a_matrix_inv * cell.b_vector * 1.3;
         });
       });
     }

@@ -74,7 +74,7 @@ class SingleWaveTest {
   using Jacobi = typename Riemann::Jacobi;
   using State = typename Riemann::State;
   using Flux = typename Riemann::Flux;
-  static constexpr int degree = 0;
+  static constexpr int degree = 1;
   static constexpr int num_coefficients = (degree+1) * (degree+2) / 2 - 1;
   using Stages = Eigen::Matrix<Scalar, 3, 1>;
   using Coefficients = Eigen::Matrix<Scalar, num_coefficients, 1>;

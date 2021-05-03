@@ -68,6 +68,12 @@ class Triangle<0> {
   // Geometric methods:
   Scalar Measure() const { return measure_; }
   const PointType& Center() const { return center_; }
+  // Factorial
+  Scalar Factorial(int p) {
+    int fac = 1;
+    for (int i = 1; i <= p; ++i) { fac *= i; }
+    return Scalar(fac);
+  }
  private:
   Scalar GetMeasure(const NodeType& a, const NodeType& b, const NodeType& c) {
     auto cross = (b.X() - a.X()) * (c.Y() - a.Y()) -
@@ -95,6 +101,9 @@ class Triangle<0> {
 template <>
 class Triangle<1> : public Triangle<0> {
  public:
+  // Types:
+  using Matrix = Eigen::Matrix<Scalar, 2, 2>;
+  using Vector = Eigen::Matrix<Scalar, 2, 1>;
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c) :
       Triangle<0>{id, a, b, c} {
@@ -110,6 +119,31 @@ class Triangle<1> : public Triangle<0> {
   Scalar F_0_1_0(Scalar x, Scalar y) { return DxInv(); }
   Scalar F_1_0_0(Scalar x, Scalar y) { return (y - Center().Y()) * DyInv(); }
   Scalar F_1_0_1(Scalar x, Scalar y) { return DyInv(); }
+  Vector Functions(Scalar x, Scalar y) {
+    Vector result;
+    result << F_0_0_0(x, y), F_1_0_0(x, y);
+    return result;
+  }
+  // VR Initialize:
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<1>* that, Scalar distance) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x, y);
+    return mat;
+  }
+  Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
+    Vector vec;
+    vec(0) = F_0_0_0(x, y);
+    vec(1) = F_1_0_0(x, y);
+    return vec / distance;
+  }
+
  private:
   Scalar GetDelta(Scalar a, Scalar b, Scalar c) {
     auto d = (std::max(std::max(a, b), c) - std::min(std::min(a, b), c)) * 0.5;
@@ -123,6 +157,9 @@ class Triangle<1> : public Triangle<0> {
 template <>
 class Triangle<2> : public Triangle<1> {
  public:
+  // Types:
+  using Matrix = Eigen::Matrix<Scalar, 5, 5>;
+  using Vector = Eigen::Matrix<Scalar, 5, 1>;
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c) :
       Triangle<1>{id, a, b, c} {
@@ -152,6 +189,12 @@ class Triangle<2> : public Triangle<1> {
   Scalar F_4_0_0(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) - YY(); }
   Scalar F_4_0_1(Scalar x, Scalar y) { return F_1_0_0(x, y) * DyInv() * 2; }
   Scalar F_4_0_2(Scalar x, Scalar y) { return std::pow(DyInv(), 2) * 2; }
+  // VR Initialize:
+  // Matrix InitializeMatWith(Triangle<2>* cell) {
+  //   auto mat = Matrix();
+  //   mat << F_4_0_0(0, 0);
+  //   return mat;
+  // }
  private:
   Scalar xx_;
   Scalar xy_;
@@ -161,6 +204,9 @@ class Triangle<2> : public Triangle<1> {
 template <>
 class Triangle<3> : public Triangle<2> {
  public:
+  // Types:
+  using Matrix = Eigen::Matrix<Scalar, 9, 9>;
+  using Vector = Eigen::Matrix<Scalar, 9, 1>;
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c) :
       Triangle<2>{id, a, b, c} {
@@ -204,12 +250,19 @@ class Triangle<3> : public Triangle<2> {
   Scalar F_8_0_1(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) * DyInv() * 3; }
   Scalar F_8_0_2(Scalar x, Scalar y) { return F_1_0_0(x, y) * std::pow(DyInv(), 2) * 6; }
   Scalar F_8_0_3(Scalar x, Scalar y) { return std::pow(DyInv(), 3) * 6; }
+  // VR Initialize:
+  // Matrix InitializeMatWith(Triangle<3>* cell) {
+  //   auto mat = Matrix();
+  //   mat << F_8_0_0(0, 0);
+  //   return mat;
+  // }
  private:
   Scalar xxx_;
   Scalar xxy_;
   Scalar xyy_;
   Scalar yyy_;
 };
+
 
 }  // namespace element
 }  // namespace buaa

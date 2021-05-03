@@ -112,6 +112,15 @@ TEST_F(EdgeTest, GaussPoints) {
   auto e4 = E3(orgin, tail);
   integrand = e4.Integrate([](const Point& point) { return std::pow(point.Y(), 3); });
   EXPECT_NEAR(integrand, 0.0064, eps);
+  // Matrix Integrand
+  using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
+  auto mat = Matrix2();
+  mat << 1, 0, 0, 1;
+  auto mat_integrand = e1.IntegrateM([&](const Point& point) { return mat; });
+  EXPECT_NEAR(mat_integrand(0,0), e1.Measure(), eps);
+  EXPECT_NEAR(mat_integrand(1,0), 0.0, eps);
+  EXPECT_NEAR(mat_integrand(0,1), 0.0, eps);
+  EXPECT_NEAR(mat_integrand(1,1), e1.Measure(), eps);
 }
 
 }  // namespace element

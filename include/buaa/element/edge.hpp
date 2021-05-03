@@ -13,12 +13,15 @@ namespace element {
 template <int kDegree>
 class Edge {
  private:
+  static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
   static constexpr int num_quad_points = int(kDegree / 2) + 1;
  public:
   // Types:
   using PointType = Point<2>;
   using NodeType = Node<2>;
   using Gauss = element::Gauss<num_quad_points>;
+  using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
+  using Vector = Eigen::Matrix<Scalar, num_coefficients, 1>;
   // Constructors:
   Edge() = default;
   Edge(const NodeType& head, const NodeType& tail) : head_(head), tail_(tail) {
@@ -42,6 +45,22 @@ class Edge {
   template <class Integrand>
   Scalar Integrate(Integrand&& integrand) const {
     Scalar result = 0.0;
+    for (int i = 0; i < num_quad_points; ++i) {
+      result += integrand(quad_points_[i]) * gauss_.weights[i];
+    }
+    return result * 0.5 * Measure();
+  }
+  template <class Integrand>
+  Matrix IntegrateM(Integrand&& integrand) const {
+    Matrix result;
+    for (int i = 0; i < num_quad_points; ++i) {
+      result += integrand(quad_points_[i]) * gauss_.weights[i];
+    }
+    return result * 0.5 * Measure();
+  }
+  template <class Integrand>
+  Vector IntegrateV(Integrand&& integrand) const {
+    Vector result;
     for (int i = 0; i < num_quad_points; ++i) {
       result += integrand(quad_points_[i]) * gauss_.weights[i];
     }

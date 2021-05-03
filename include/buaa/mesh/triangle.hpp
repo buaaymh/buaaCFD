@@ -34,6 +34,7 @@ class Triangle : public element::Triangle<kDegree> {
   using PointType = element::Point<2>;
   using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
   using Vector = Eigen::Matrix<Scalar, num_coefficients, 1>;
+  using Matrix3V = Eigen::Matrix<Scalar, num_coefficients, 3>;
   using Data = CellData;
   // Constructors:
   Triangle() = default;
@@ -45,10 +46,33 @@ class Triangle : public element::Triangle<kDegree> {
   // Iterators:
   template <class Visitor>
   void ForEachEdge(Visitor&& visitor) { for(auto& e : edges_) {visitor(*e);} }
+  // Initialize VR Matrix and Vector:
+  void InitializeAmatInv() {
+    ForEachEdge([&](EdgeType& edge) {
+      a_matrix_inv += edge.IntegrateM([&](const PointType& point) {
+        return this->InitializeMatWith(point.X(), point.Y(), this,
+                                       edge.data.distance);
+      });
+    });
+    a_matrix_inv = a_matrix_inv.inverse().eval();
+  }
+  void InitializeBvecMat() {
+    for (int i = 0; i < 3; ++i) {
+      b_vector_mat.col(i) = edges_[i]->IntegrateV([&](const PointType& point) {
+        return this->InitializeVecWith(point.X(), point.Y(),
+                                       edges_[i]->data.distance);
+      });
+    }
+  }
+  // Polynomial:
+  Scalar Polynomial(const PointType& point) {
+    return data.coefficients.dot(this->Functions(point.X(), point.Y()));
+  }
   // Data:
   Data data;
   Matrix a_matrix_inv;
   Vector b_vector;
+  Matrix3V b_vector_mat;
   static std::array<std::string, CellData::CountScalars()> scalar_names;
   static std::array<std::string, CellData::CountVectors()> vector_names;
 

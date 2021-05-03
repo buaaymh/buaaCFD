@@ -14,6 +14,8 @@
 namespace buaa {
 namespace solver {
 
+using Scalar = mesh::Scalar;
+
 template <class Mesh>
 class Manager {
  public:

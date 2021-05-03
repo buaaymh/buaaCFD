@@ -32,7 +32,7 @@ class Edge : public element::Edge<kDegree> {
   using Base = element::Edge<kDegree>;
   using Point = element::Point<2>;
   using Node = element::Node<2>;
-  using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
+  using Matrix = typename Base::Matrix;
   using Data = EdgeData;
   // Constructors:
   Edge() = default;
@@ -49,6 +49,20 @@ class Edge : public element::Edge<kDegree> {
   void SetNegativeSide(Cell* cell) { negative_side_ = cell; }
   // Accessors:
   static constexpr int CountCoefficients() { return num_coefficients; }
+  // Initialize VR Matrix and Vector:
+  void InitializeBmat() {
+    if (positive_side_->I() < negative_side_->I()) {
+      b_matrix = this->IntegrateM([&](const Point& point) {
+        return positive_side_->InitializeMatWith(point.X(), point.Y(),
+                                                 negative_side_, data.distance);
+      });
+    } else {
+      b_matrix = this->IntegrateM([&](const Point& point) {
+        return negative_side_->InitializeMatWith(point.X(), point.Y(),
+                                                 positive_side_, data.distance);
+      });
+    }
+  }
   // Data:
   Data data;
   Matrix b_matrix;
