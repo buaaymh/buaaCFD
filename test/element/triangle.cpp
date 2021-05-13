@@ -42,10 +42,11 @@ TEST_F(TriangleTest, OneDegreeCell) {
   auto x_c = cell.Center().X();
   auto y_c = cell.Center().Y();
   // One Degree:
-  EXPECT_EQ(cell.F_0_0_0(x_c, y_c), 0);
-  EXPECT_EQ(cell.F_0_1_0(x_c, y_c), 2);
-  EXPECT_EQ(cell.F_1_0_0(x_c, y_c), 0);
-  EXPECT_EQ(cell.F_1_0_1(x_c, y_c), 1);
+  Scalar x = 3.0, y = 2.0;
+  EXPECT_EQ(cell.F_0_0_0(x, y), (x - x_c) * cell.DxInv());
+  EXPECT_EQ(cell.F_0_1_0(x, y), 2);
+  EXPECT_EQ(cell.F_1_0_0(x, y), (y - y_c) * cell.DyInv());
+  EXPECT_EQ(cell.F_1_0_1(x, y), 1);
 }
 TEST_F(TriangleTest, TwoDegreeCell) {
   auto cell = T2(id, a, b, c);

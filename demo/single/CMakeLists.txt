@@ -3,4 +3,8 @@ if (${PROJECT_NAME}_ENABLE_VTK)
   add_executable(demo_single_model model.cpp)
   set_target_properties(demo_single_model PROPERTIES OUTPUT_NAME model)
   add_test(NAME DemoSingleModel COMMAND model)
+
+  # add_executable(demo_single_vrfv vrfv.cpp)
+  # set_target_properties(demo_single_vrfv PROPERTIES OUTPUT_NAME vrfv)
+  # add_test(NAME DemoSingleVrfv COMMAND vrfv)
 endif (${PROJECT_NAME}_ENABLE_VTK)

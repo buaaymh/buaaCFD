@@ -44,28 +44,24 @@ class Edge : public element::Edge<kDegree> {
     if (cell == positive_side_) { return negative_side_; }
     else { return positive_side_; }
   }
-  // // Mutators:
+  // Mutators:
   void SetPositiveSide(Cell* cell) { positive_side_ = cell; }
   void SetNegativeSide(Cell* cell) { negative_side_ = cell; }
   // Accessors:
   static constexpr int CountCoefficients() { return num_coefficients; }
   // Initialize VR Matrix and Vector:
   void InitializeBmat() {
-    if (positive_side_->I() < negative_side_->I()) {
-      b_matrix = this->IntegrateM([&](const Point& point) {
-        return positive_side_->InitializeMatWith(point.X(), point.Y(),
-                                                 negative_side_, data.distance);
-      });
-    } else {
-      b_matrix = this->IntegrateM([&](const Point& point) {
-        return negative_side_->InitializeMatWith(point.X(), point.Y(),
-                                                 positive_side_, data.distance);
-      });
-    }
+    b_matrix = Matrix();
+    b_matrix = this->IntegrateM([&](const Point& point) {
+      return positive_side_->InitializeMatWith(point.X(), point.Y(),
+                                               negative_side_, data.distance);
+    });
+    b_matrix *= 1.0;
   }
   // Data:
-  Data data;
+  Scalar distance;
   Matrix b_matrix;
+  Data data;
 
  private:
   Cell* positive_side_{nullptr};

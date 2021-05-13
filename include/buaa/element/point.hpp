@@ -6,9 +6,11 @@
 
 #include <Eigen/Dense>
 
+#include "buaa/riemann/types.hpp"
+
 namespace buaa {
 namespace element {
-using Scalar = double;
+using Scalar = riemann::Scalar;
 using Id = std::size_t;
 using Eigen::Matrix;
 

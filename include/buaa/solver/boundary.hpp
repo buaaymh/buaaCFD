@@ -58,15 +58,14 @@ class Manager {
   template<class Visitor>
   void ForEachInteriorEdge(Visitor&& visit) {
     for (auto& edge : interior_edges_) {
-      visit(edge);
+      visit(*edge);
     }
   }
   template<class Visitor>
   void ForEachPeriodicEdge(Visitor&& visit) {
     for (auto& [left, right] : periodic_part_pairs_) {
       for (int i = 0; i < left->size(); i++) {
-        visit(left->at(i));
-        right->at(i)->data.flux = left->at(i)->data.flux;
+        visit(*(left->at(i)), *(right->at(i)));
       }
     }
   }
@@ -121,10 +120,9 @@ class Manager {
         b->SetNegativeSide(a_positive);
         dist_ab -= a_positive->Center() - b_positive->Center();
       }
-      a->data.distance = dist_ab.norm();
-      b->data.distance = dist_ab.norm();
     }
-
+    a->data.distance = dist_ab.norm();
+    b->data.distance = dist_ab.norm();
   }
   bool CheckBoundaryConditions() {
     int n = 0;

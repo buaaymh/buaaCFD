@@ -4,10 +4,12 @@
 
 #include <array>
 
+#include "buaa/element/point.hpp"
+
 namespace buaa {
 namespace mesh {
 
-using Scalar = double;
+using Scalar = element::Scalar;
 using Id = std::size_t;
 
 template <int kDim, int kScalars, int kVectors>

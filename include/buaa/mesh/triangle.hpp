@@ -43,11 +43,18 @@ class Triangle : public element::Triangle<kDegree> {
       edges_{ab, bc, ca} {}
   // Accessors:
   static constexpr int CountCoefficients() { return num_coefficients; }
+  bool Contains(const EdgeType* edge) const {
+    for (int i = 0; i < 3; ++i) {
+      if (edges_[i] == edge) { return true; }
+    }
+    return false;
+  }
   // Iterators:
   template <class Visitor>
   void ForEachEdge(Visitor&& visitor) { for(auto& e : edges_) {visitor(*e);} }
   // Initialize VR Matrix and Vector:
   void InitializeAmatInv() {
+    a_matrix_inv = Matrix();
     ForEachEdge([&](EdgeType& edge) {
       a_matrix_inv += edge.IntegrateM([&](const PointType& point) {
         return this->InitializeMatWith(point.X(), point.Y(), this,
@@ -69,10 +76,10 @@ class Triangle : public element::Triangle<kDegree> {
     return data.coefficients.dot(this->Functions(point.X(), point.Y()));
   }
   // Data:
-  Data data;
   Matrix a_matrix_inv;
   Vector b_vector;
   Matrix3V b_vector_mat;
+  Data data;
   static std::array<std::string, CellData::CountScalars()> scalar_names;
   static std::array<std::string, CellData::CountVectors()> vector_names;
 

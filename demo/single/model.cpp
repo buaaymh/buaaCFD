@@ -17,8 +17,6 @@
 namespace buaa {
 namespace solver {
 
-using Scalar = double;
-
 template <class Riemann>
 class SingleWaveTest {
  public:

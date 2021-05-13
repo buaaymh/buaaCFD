@@ -21,6 +21,7 @@ class Rkvr {
   using PointType = typename Mesh::Point;
   using EdgeType = typename Mesh::Edge;
   using CellType = typename Mesh::Cell;
+  using Matrix = typename EdgeType::Matrix;
   using State = typename Riemann::State;
   using FluxType = typename Riemann::Flux;
   using Reader = mesh::vtk::Reader<Mesh>;
@@ -44,7 +45,7 @@ class Rkvr {
   void SetInitialState(Visitor&& visitor) {
     mesh_->ForEachCell(visitor);
   }
-  void SetTimeSteps(double duration, int n_steps, int refresh_rate) {
+  void SetTimeSteps(Scalar duration, int n_steps, int refresh_rate) {
     duration_ = duration;
     n_steps_ = n_steps;
     step_size_ = duration / n_steps;
@@ -74,7 +75,7 @@ class Rkvr {
       // Runge-Kutta three steps :
       RungeKutta3Stepper();
       if (i % refresh_rate_ == 0) {
-        filename = dir_ + model_name_ + "." +std::to_string(i) + ".vtu";
+        filename = dir_ + model_name_ + "." + std::to_string(i) + ".vtu";
         pass = WriteCurrentFrame(filename);
         std::printf("Progress: %d/%d\n", i, n_steps_);
       }
@@ -127,25 +128,48 @@ class Rkvr {
                               rhs * step_size_ / cell.Measure()) * 2 / 3;
     });
   }
-  void GetFluxOnEachEdge(int stage) {
-    UpdataCoefficients(stage);
-    mesh_->ForEachEdge([&](EdgeType& edge) {
-      auto& riemann_ = edge.data.riemann;
-      auto cell_l = edge.GetPositiveSide();
-      auto cell_r = edge.GetNegativeSide();
-      edge.data.flux = edge.Integrate([&](const PointType& point) {
+  void GetFluxOnInteriorEdge(EdgeType& edge, int stage) {
+    auto& riemann_ = edge.data.riemann;
+    auto cell_l = edge.GetPositiveSide();
+    auto cell_r = edge.GetNegativeSide();
+    edge.data.flux = edge.Integrate([&](const PointType& point) {
+      auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
+      auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
+      return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+    });
+  }
+  void GetFluxOnPeriodicEdge(EdgeType& edge_a, EdgeType& edge_b, int stage) {
+    auto& riemann_ = edge_a.data.riemann;
+    auto ab = PointType(edge_b.Center() - edge_a.Center());
+    auto cell_l = edge_a.GetPositiveSide();
+    auto cell_r = edge_a.GetNegativeSide();
+    if (cell_l->Contains(&edge_a)) {
+      edge_a.data.flux = edge_a.Integrate([&](const PointType& point) {
+        auto point_ab = PointType(point + ab);
         auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
+        auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point_ab);
+        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+      });
+    } else {
+      edge_a.data.flux = edge_a.Integrate([&](const PointType& point) {
+        auto point_ab = PointType(point + ab);
+        auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point_ab);
         auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
         return riemann_.GetFluxOnTimeAxis(u_l, u_r);
       });
-
-      // auto const& u_l = cell_l->data.u_stages[stage];
-      // auto const& u_r = cell_r->data.u_stages[stage];
-      // edge.data.flux = riemann_.GetFluxOnTimeAxis(u_l, u_r);
-      // edge.data.flux *= edge.Measure();
+    }
+    if (cell_l == edge_b.GetPositiveSide()) { edge_b.data.flux = edge_a.data.flux; }
+    else { edge_b.data.flux = -edge_a.data.flux; }
+  }
+  void GetFluxOnEachEdge(int stage) {
+    UpdataCoefficients(stage);
+    edge_manager_.ForEachInteriorEdge([&](EdgeType& edge) {
+      GetFluxOnInteriorEdge(edge, stage);
+    });
+    edge_manager_.ForEachPeriodicEdge([&](EdgeType& edge_a, EdgeType& edge_b) {
+      GetFluxOnPeriodicEdge(edge_a, edge_b, stage);
     });
   }
-
   FluxType GetRHS(CellType& cell) {
     auto rhs = FluxType();
     cell.ForEachEdge([&](EdgeType& edge) {
@@ -158,7 +182,26 @@ class Rkvr {
     return rhs;
   }
   void InitializeVrMatrix() {
-    mesh_->ForEachEdge([&](EdgeType& edge) {
+    edge_manager_.ForEachPeriodicEdge([&](EdgeType& edge_a, EdgeType& edge_b) {
+      auto ab = PointType(edge_b.Center() - edge_a.Center());
+      auto cell_l = edge_a.GetPositiveSide();
+      auto cell_r = edge_a.GetNegativeSide();
+      edge_a.b_matrix = Matrix();
+      edge_b.b_matrix = Matrix();
+      if (cell_l->Contains(&edge_a)) {
+        edge_a.b_matrix += edge_a.IntegrateM([&](const PointType& point) {
+            return cell_l->InitializeMatWith(point.X(), point.Y(), cell_r,
+                                             edge_a.data.distance, ab);
+        });
+      } else {
+        edge_a.b_matrix += edge_a.IntegrateM([&](const PointType& point) {
+            return cell_r->InitializeMatWith(point.X(), point.Y(), cell_l,
+                                             edge_a.data.distance, ab);
+        });
+      }
+      edge_b.b_matrix += edge_a.b_matrix;
+    });
+    edge_manager_.ForEachInteriorEdge([&](EdgeType& edge) {
       edge.InitializeBmat();
     });
     mesh_->ForEachCell([&](CellType& cell) {
@@ -175,7 +218,7 @@ class Rkvr {
       });
       cell.b_vector = cell.b_vector_mat * vec;
     });
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 1; ++i) {
       mesh_->ForEachCell([&](CellType& cell) {
         cell.data.coefficients = -0.3 * cell.data.coefficients;
         cell.ForEachEdge([&](EdgeType& edge) {
@@ -184,7 +227,7 @@ class Rkvr {
             cell.data.coefficients += cell.a_matrix_inv * edge.b_matrix *
                 neighber->data.coefficients * 1.3;
           } else {
-            cell.data.coefficients += cell.a_matrix_inv * edge.b_matrix.transpose() *
+            cell.data.coefficients += cell.a_matrix_inv * (edge.b_matrix.transpose()) *
                 neighber->data.coefficients * 1.3;
           }
           cell.data.coefficients += cell.a_matrix_inv * cell.b_vector * 1.3;
@@ -196,12 +239,11 @@ class Rkvr {
   Reader reader_;
   Writer writer_;
   std::unique_ptr<Mesh> mesh_;
-  double duration_;
+  Scalar duration_;
   int n_steps_;
-  double step_size_;
+  Scalar step_size_;
   std::string dir_;
   int refresh_rate_;
-  std::set<EdgeType*> inside_edge_;
   Manager<Mesh> edge_manager_;
 };
 

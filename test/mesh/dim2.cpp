@@ -11,9 +11,10 @@ namespace mesh {
 
 class MeshTest : public ::testing::Test {
  protected:
-  using MeshType = Mesh<3, Empty, Empty>;
+  using MeshType = Mesh<1, Empty, Empty>;
   using CellType = MeshType::Cell;
   using EdgeType = MeshType::Edge;
+  using PointType = MeshType::Point;
   using NodeType = MeshType::Node;
   MeshType mesh{};
   const std::vector<Scalar> x{0.0, 1.0, 1.0, 0.0}, y{0.0, 0.0, 1.0, 1.0};
@@ -180,7 +181,47 @@ TEST_F(MeshTest, GetSide) {
   EXPECT_EQ(edges[3]->GetPositiveSide(), nullptr);
   EXPECT_EQ(edges[3]->GetNegativeSide(), cells[1]);
 }
-
+TEST_F(MeshTest, Polynomial) {
+  /*
+     3 -- [2] -- 2
+     |  (1)   /  |
+    [3]   [4]   [1]
+     |  /   (0)  |
+     0 -- [0] -- 1
+  */
+  mesh.Clear();
+  // Emplace 4 nodes:
+  for (auto n = 0; n != x.size(); ++n) {
+    mesh.EmplaceNode(n, x[n], y[n]);
+  }
+  // Emplace 5 edges:
+  auto edges = std::vector<EdgeType*>();
+  edges.emplace_back(mesh.EmplaceEdge(0, 1));
+  edges.emplace_back(mesh.EmplaceEdge(1, 2));
+  edges.emplace_back(mesh.EmplaceEdge(2, 3));
+  edges.emplace_back(mesh.EmplaceEdge(3, 0));
+  edges.emplace_back(mesh.EmplaceEdge(0, 2));
+  // Emplace 2 triangular cells:
+  auto cells = std::vector<CellType*>();
+  cells.emplace_back(mesh.EmplaceCell(0, {0, 1, 2}));
+  cells.emplace_back(mesh.EmplaceCell(1, {0, 2, 3}));
+  EXPECT_EQ(mesh.CountNodes(), x.size());
+  EXPECT_EQ(mesh.CountCells(), 2);
+  EXPECT_EQ(mesh.CountEdges(), 5);
+  auto distance = (cells[1]->Center() - cells[0]->Center()).norm();
+  auto mat = edges[4]->IntegrateM([&](const PointType& point) {
+      return cells[1]->InitializeMatWith(point.X(), point.Y(), cells[0], distance);
+  });
+  std::cout << mat << std::endl << std::endl;
+  std::cout << cells[0]->F_0_0_0(0.5, 0.5) << std::endl;
+  std::cout << cells[0]->F_0_1_0(0.5, 0.5) << std::endl;
+  std::cout << cells[0]->F_1_0_0(0.5, 0.5) << std::endl;
+  std::cout << cells[0]->F_1_0_1(0.5, 0.5) << std::endl << std::endl;
+  std::cout << cells[1]->F_0_0_0(0.5, 0.5) << std::endl;
+  std::cout << cells[1]->F_0_1_0(0.5, 0.5) << std::endl;
+  std::cout << cells[1]->F_1_0_0(0.5, 0.5) << std::endl;
+  std::cout << cells[1]->F_1_0_1(0.5, 0.5) << std::endl << std::endl;
+}
 
 }  // namespace mesh
 }  // namespace buaa

@@ -131,10 +131,28 @@ class Triangle<1> : public Triangle<0> {
     Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
     mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x, y) +
                 p1 * F_0_1_0(x, y) * that->F_0_1_0(x, y);
-    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y);
-    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_1_0_1(x, y);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_0_1_0(x, y);
     mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x, y) +
                 p1 * F_1_0_1(x, y) * that->F_1_0_1(x, y);
+    if (I() > that->I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<1>* that, Scalar distance, const PointType& ab) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x + ab.X(), y + ab.Y()) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x + ab.X(), y + ab.Y());
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x + ab.X(), y + ab.Y()) +
+                p1 * F_0_1_0(x, y) * that->F_1_0_1(x + ab.X(), y + ab.Y());
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x + ab.X(), y + ab.Y()) +
+                p1 * F_1_0_1(x, y) * that->F_0_1_0(x + ab.X(), y + ab.Y());
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x + ab.X(), y + ab.Y()) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x + ab.X(), y + ab.Y());
+    if (I() > that->I()) { mat.transposeInPlace(); }
     return mat;
   }
   Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
@@ -189,12 +207,6 @@ class Triangle<2> : public Triangle<1> {
   Scalar F_4_0_0(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) - YY(); }
   Scalar F_4_0_1(Scalar x, Scalar y) { return F_1_0_0(x, y) * DyInv() * 2; }
   Scalar F_4_0_2(Scalar x, Scalar y) { return std::pow(DyInv(), 2) * 2; }
-  // VR Initialize:
-  // Matrix InitializeMatWith(Triangle<2>* cell) {
-  //   auto mat = Matrix();
-  //   mat << F_4_0_0(0, 0);
-  //   return mat;
-  // }
  private:
   Scalar xx_;
   Scalar xy_;
@@ -250,12 +262,6 @@ class Triangle<3> : public Triangle<2> {
   Scalar F_8_0_1(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) * DyInv() * 3; }
   Scalar F_8_0_2(Scalar x, Scalar y) { return F_1_0_0(x, y) * std::pow(DyInv(), 2) * 6; }
   Scalar F_8_0_3(Scalar x, Scalar y) { return std::pow(DyInv(), 3) * 6; }
-  // VR Initialize:
-  // Matrix InitializeMatWith(Triangle<3>* cell) {
-  //   auto mat = Matrix();
-  //   mat << F_8_0_0(0, 0);
-  //   return mat;
-  // }
  private:
   Scalar xxx_;
   Scalar xxy_;
