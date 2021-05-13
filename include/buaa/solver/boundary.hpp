@@ -2,14 +2,7 @@
 #ifndef BUAA_SOLVER_BOUNDARY_HPP_
 #define BUAA_SOLVER_BOUNDARY_HPP_
 
-#include <algorithm>
-#include <cmath>
-#include <memory>
-#include <stdexcept>
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <vector>
+#include "buaa/mesh/dim2.hpp"
 
 namespace buaa {
 namespace solver {
@@ -20,7 +13,9 @@ template <class Mesh>
 class Manager {
  public:
   // Types:
+  using CellType = typename Mesh::Cell;
   using EdgeType = typename Mesh::Edge;
+  using NodeType = typename Mesh::Node;
   using PointType = typename Mesh::Point;
   using Part = std::vector<EdgeType*>;
   // Construction:
@@ -69,6 +64,11 @@ class Manager {
       }
     }
   }
+  void UpdatePeriodCells() {
+    for (auto& [ghost, parent] : ghost_to_parent_) {
+      ghost->data = parent->data;
+    }
+  }
 
  private:
   // Data members:
@@ -76,6 +76,8 @@ class Manager {
   std::vector<EdgeType*> boundary_edges_;
   std::vector<std::pair<Part*, Part*>> periodic_part_pairs_;
   std::unordered_map<std::string, std::unique_ptr<Part>> name_to_part_;
+  std::vector<std::pair<std::unique_ptr<CellType>, CellType*>> ghost_to_parent_;
+
   // Implement details:
   void SetPeriodicBoundary(Part* head, Part* tail) {
     assert(head->size() == tail->size());
@@ -99,30 +101,43 @@ class Manager {
     auto a_negative = a->GetNegativeSide();
     auto b_positive = b->GetPositiveSide();
     auto b_negative = b->GetNegativeSide();
-    auto dist_ab = PointType(a->Center() - b->Center());
+    CellType* cell_a = nullptr;
+    CellType* cell_b = nullptr;
+    auto vec_ab = PointType(b->Center() - a->Center());
+    auto vec_ba = PointType(a->Center() - b->Center());
     if (a_positive == nullptr) {
-      if (b_positive == nullptr) {
-        a->SetPositiveSide(b_negative);
-        b->SetPositiveSide(a_negative);
-        dist_ab -= a_negative->Center() - b_negative->Center();
-      } else {
-        a->SetPositiveSide(b_positive);
-        b->SetNegativeSide(a_negative);
-        dist_ab -= a_negative->Center() - b_positive->Center();
-      }
+      auto cell_a_ptr = MoveCell(a_negative, vec_ab);
+      cell_a = cell_a_ptr.get();
+      ghost_to_parent_.emplace_back(std::move(cell_a_ptr), a_negative);
     } else {
-      if (b_positive == nullptr) {
-        a->SetNegativeSide(b_negative);
-        b->SetPositiveSide(a_positive);
-        dist_ab -= a_positive->Center() - b_negative->Center();
-      } else {
-        a->SetNegativeSide(b_positive);
-        b->SetNegativeSide(a_positive);
-        dist_ab -= a_positive->Center() - b_positive->Center();
-      }
+      auto cell_a_ptr = MoveCell(a_positive, vec_ab);
+      cell_a = cell_a_ptr.get();
+      ghost_to_parent_.emplace_back(std::move(cell_a_ptr), a_positive);
     }
-    a->data.distance = dist_ab.norm();
-    b->data.distance = dist_ab.norm();
+    if (b_positive == nullptr) {
+      auto cell_b_ptr = MoveCell(b_negative, vec_ba);
+      cell_b = cell_b_ptr.get();
+      ghost_to_parent_.emplace_back(std::move(cell_b_ptr), b_negative);
+    } else {
+      auto cell_b_ptr = MoveCell(b_positive, vec_ba);
+      cell_b = cell_b_ptr.get();
+      ghost_to_parent_.emplace_back(std::move(cell_b_ptr), b_positive);
+    }
+    if (a_positive == nullptr) { a->SetPositiveSide(cell_b); }
+    else { a->SetNegativeSide(cell_b); }
+    if (b_positive == nullptr) { b->SetPositiveSide(cell_a); }
+    else { b->SetNegativeSide(cell_a); }
+    a->data.distance = (a->GetPositiveSide()->Center() - a->GetNegativeSide()->Center()).norm();
+    b->data.distance = (b->GetPositiveSide()->Center() - b->GetNegativeSide()->Center()).norm();
+  }
+  std::unique_ptr<CellType> MoveCell(CellType* cell, const PointType& ab_vec) {
+    auto a = NodeType(cell->A().I(), cell->A().X() + ab_vec.X(), cell->A().Y() + ab_vec.Y());
+    auto b = NodeType(cell->B().I(), cell->B().X() + ab_vec.X(), cell->B().Y() + ab_vec.Y());
+    auto c = NodeType(cell->C().I(), cell->C().X() + ab_vec.X(), cell->C().Y() + ab_vec.Y());
+    auto ab = EdgeType(a, b);
+    auto bc = EdgeType(b, c);
+    auto ca = EdgeType(c, a);
+    return std::make_unique<CellType>(cell->I(), a, b, c, &ab, &bc, &ca);
   }
   bool CheckBoundaryConditions() {
     int n = 0;
