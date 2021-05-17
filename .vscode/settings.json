@@ -77,6 +77,8 @@
     "adolcforward": "cpp",
     "mprealsupport": "cpp",
     "cassert": "cpp",
-    "*.expression": "cpp"
+    "*.expression": "cpp",
+    "geometry": "cpp",
+    "core": "cpp"
   }
 }

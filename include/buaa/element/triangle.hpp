@@ -131,12 +131,23 @@ class Triangle<1> : public Triangle<0> {
     Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
     mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x, y) +
                 p1 * F_0_1_0(x, y) * that->F_0_1_0(x, y);
-    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y) +
-                p1 * F_0_1_0(x, y) * that->F_1_0_1(x, y);
-    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y) +
-                p1 * F_1_0_1(x, y) * that->F_0_1_0(x, y);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y);
     mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x, y) +
                 p1 * F_1_0_1(x, y) * that->F_1_0_1(x, y);
+    if (I() > that->I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<1>* that, Scalar distance, const PointType& ab) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x + ab.X(), y + ab.Y()) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x + ab.X(), y + ab.Y());
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x + ab.X(), y + ab.Y());
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x + ab.X(), y + ab.Y());
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x + ab.X(), y + ab.Y()) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x + ab.X(), y + ab.Y());
     if (I() > that->I()) { mat.transposeInPlace(); }
     return mat;
   }

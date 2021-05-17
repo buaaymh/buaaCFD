@@ -27,6 +27,7 @@ class Triangle : public element::Triangle<kDegree> {
  private:
   static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Types:
   using Base = element::Triangle<kDegree>;
   using EdgeType = Edge<kDegree, EdgeData, CellData>;
@@ -40,7 +41,11 @@ class Triangle : public element::Triangle<kDegree> {
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c,
       EdgeType* ab, EdgeType* bc, EdgeType* ca) : Base(id, a, b, c),
-      edges_{ab, bc, ca} {}
+      edges_{ab, bc, ca} {
+        a_matrix_inv = Matrix::Zero();
+        b_vector = Vector::Zero();
+        b_vector_mat = Matrix3V::Zero();
+      }
   // Accessors:
   static constexpr int CountCoefficients() { return num_coefficients; }
   bool Contains(const EdgeType* edge) const {
@@ -54,11 +59,10 @@ class Triangle : public element::Triangle<kDegree> {
   void ForEachEdge(Visitor&& visitor) { for(auto& e : edges_) {visitor(*e);} }
   // Initialize VR Matrix and Vector:
   void InitializeAmatInv() {
-    a_matrix_inv = Matrix();
     ForEachEdge([&](EdgeType& edge) {
       a_matrix_inv += edge.IntegrateM([&](const PointType& point) {
         return this->InitializeMatWith(point.X(), point.Y(), this,
-                                       edge.data.distance);
+                                       edge.distance);
       });
     });
     a_matrix_inv = a_matrix_inv.inverse().eval();
@@ -66,8 +70,7 @@ class Triangle : public element::Triangle<kDegree> {
   void InitializeBvecMat() {
     for (int i = 0; i < 3; ++i) {
       b_vector_mat.col(i) = edges_[i]->IntegrateV([&](const PointType& point) {
-        return this->InitializeVecWith(point.X(), point.Y(),
-                                       edges_[i]->data.distance);
+        return this->InitializeVecWith(point.X(), point.Y(), edges_[i]->distance);
       });
     }
   }
@@ -76,12 +79,12 @@ class Triangle : public element::Triangle<kDegree> {
     return data.coefficients.dot(this->Functions(point.X(), point.Y()));
   }
   // Data:
+  static std::array<std::string, CellData::CountScalars()> scalar_names;
+  static std::array<std::string, CellData::CountVectors()> vector_names;
+  Data data;
   Matrix a_matrix_inv;
   Vector b_vector;
   Matrix3V b_vector_mat;
-  Data data;
-  static std::array<std::string, CellData::CountScalars()> scalar_names;
-  static std::array<std::string, CellData::CountVectors()> vector_names;
 
  private:
   std::array<EdgeType*, 3> edges_;

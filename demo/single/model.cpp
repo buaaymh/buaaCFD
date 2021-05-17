@@ -78,17 +78,20 @@ class SingleWaveTest {
   using Coefficients = Eigen::Matrix<Scalar, num_coefficients, 1>;
   // Types:
   struct EdgeData : public mesh::Empty {
-    Scalar distance;
     Flux flux;
     Riemann riemann;
   };
   struct CellData : public mesh::Data<
       2/* dims */, 1/* scalars */, 0/* vectors */> {
    public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Stages u_stages;
     Coefficients coefficients;
     void Write() {
       scalars[0] = u_stages[0];
+    }
+    void Initialize() {
+      coefficients = Coefficients::Zero();
     }
   };
   using Mesh = mesh::Mesh<degree, EdgeData, CellData>;

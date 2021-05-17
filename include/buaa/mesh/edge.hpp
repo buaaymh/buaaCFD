@@ -27,6 +27,7 @@ class Edge : public element::Edge<kDegree> {
  private:
   static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Types:
   using Cell = Triangle<kDegree, EdgeData, CellData>;
   using Base = element::Edge<kDegree>;
@@ -36,7 +37,9 @@ class Edge : public element::Edge<kDegree> {
   using Data = EdgeData;
   // Constructors:
   Edge() = default;
-  Edge(const Node& head, const Node& tail) : Base(head, tail) {}
+  Edge(const Node& head, const Node& tail) : Base(head, tail) {
+    b_matrix = Matrix::Zero();
+  }
   // Accessors:
   Cell* GetPositiveSide() const { return positive_side_; }
   Cell* GetNegativeSide() const { return negative_side_; }
@@ -51,17 +54,28 @@ class Edge : public element::Edge<kDegree> {
   static constexpr int CountCoefficients() { return num_coefficients; }
   // Initialize VR Matrix and Vector:
   void InitializeBmat() {
-    b_matrix = Matrix();
-    b_matrix = this->IntegrateM([&](const Point& point) {
+    b_matrix += this->IntegrateM([&](const Point& point) {
       return positive_side_->InitializeMatWith(point.X(), point.Y(),
-                                               negative_side_, data.distance);
+                                               negative_side_, distance);
     });
-    b_matrix *= 1.0;
+  }
+  void InitializeBmat(const Point& vec_ab) {
+    if (positive_side_->Contains(this)) {
+      b_matrix += this->IntegrateM([&](const Point& point) {
+        return positive_side_->InitializeMatWith(point.X(), point.Y(), negative_side_,
+                                                 distance, vec_ab);
+      });
+    } else {
+      b_matrix += this->IntegrateM([&](const Point& point) {
+        return negative_side_->InitializeMatWith(point.X(), point.Y(), positive_side_,
+                                                 distance, vec_ab);
+      });
+    }
   }
   // Data:
   Scalar distance;
-  Matrix b_matrix;
   Data data;
+  Matrix b_matrix;
 
  private:
   Cell* positive_side_{nullptr};

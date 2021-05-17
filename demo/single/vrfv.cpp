@@ -36,10 +36,14 @@ class VrfvTest : public ::testing::Test {
   struct CellData : public mesh::Data<
       2/* dims */, 1/* scalars */, 0/* vectors */> {
    public:
-    Stages u_stages;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Coefficients coefficients;
+    Stages u_stages;
     void Write() {
       scalars[0] = u_stages[0];
+    }
+    void Initialize() {
+      coefficients = Coefficients::Zero();
     }
   };
   using Mesh = mesh::Mesh<degree, EdgeData, CellData>;
@@ -49,7 +53,7 @@ class VrfvTest : public ::testing::Test {
   // Data:
   const std::string test_data_dir_{TEST_DATA_DIR};
   const std::string model_name_{"vrfv"};
-  const std::string mesh_name_{"simple.vtk"};
+  const std::string mesh_name_{"simple2.vtk"};
 };
 TEST_F(VrfvTest, Constructor) {
   Mesh::Cell::scalar_names.at(0) = "U";
@@ -75,10 +79,10 @@ TEST_F(VrfvTest, Constructor) {
   // Set Initial Conditions:
   model.SetInitialState([&](Cell& cell) {
     cell.data.u_stages[0] = cell.Integrate([&](auto point){
-        return -point.X() + point.Y();}) / cell.Measure();
+        return point.X();}) / cell.Measure();
   });
   model.InitializeVrMatrix();
-  model.UpdataCoefficients(0);
+  model.UpdateCoefficients(0);
   system(("rm -rf " + output_dir).c_str());
   system(("mkdir -p " + output_dir).c_str());
   auto filename = output_dir + std::string("/vrfv.vtu");

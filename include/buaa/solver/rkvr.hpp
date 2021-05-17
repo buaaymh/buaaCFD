@@ -21,7 +21,8 @@ class Rkvr {
   using PointType = typename Mesh::Point;
   using EdgeType = typename Mesh::Edge;
   using CellType = typename Mesh::Cell;
-  using Matrix = typename EdgeType::Matrix;
+  using Vector = typename CellType::Vector;
+  using Matrix = typename CellType::Matrix;
   using State = typename Riemann::State;
   using FluxType = typename Riemann::Flux;
   using Reader = mesh::vtk::Reader<Mesh>;
@@ -29,6 +30,7 @@ class Rkvr {
   static constexpr int degree = Mesh::kDegree;
 
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   explicit Rkvr(std::string const& name) : model_name_(name) {}
   bool ReadMesh(std::string const& file_name) {
     reader_ = Reader();
@@ -81,7 +83,6 @@ class Rkvr {
       }
     }
   }
-
  private:
   bool WriteCurrentFrame(std::string const& filename) {
     mesh_->ForEachCell([&](CellType& cell) {
@@ -100,7 +101,7 @@ class Rkvr {
       auto cell_r = edge.GetNegativeSide();
       if (cell_l && cell_r) {
         edge_manager_.AddInteriorEdge(&edge);
-        edge.data.distance = (cell_l->Center() - cell_r->Center()).norm();
+        edge.distance = (cell_l->Center() - cell_r->Center()).norm();
       } else {
         edge_manager_.AddBoundaryEdge(&edge);
       }
@@ -138,12 +139,38 @@ class Rkvr {
       return riemann_.GetFluxOnTimeAxis(u_l, u_r);
     });
   }
+  void GetFluxOnPeriodicEdge(EdgeType& edge_a, EdgeType& edge_b, int stage) {
+    auto& riemann_ = edge_a.data.riemann;
+    auto vec_ab = PointType(edge_b.Center() - edge_a.Center());
+    auto cell_l = edge_a.GetPositiveSide();
+    auto cell_r = edge_a.GetNegativeSide();
+    if (cell_l->Contains(&edge_a)) {
+      edge_a.data.flux = edge_a.Integrate([&](const PointType& point) {
+        auto point_ab = PointType(point + vec_ab);
+        auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
+        auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point_ab);
+        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+      });
+    } else {
+      edge_a.data.flux = edge_a.Integrate([&](const PointType& point) {
+        auto point_ab = PointType(point + vec_ab);
+        auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point_ab);
+        auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
+        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+      });
+    }
+    if (cell_l == edge_b.GetPositiveSide()) { edge_b.data.flux = edge_a.data.flux; }
+    else { edge_b.data.flux = -edge_a.data.flux; }
+  }
   void GetFluxOnEachEdge(int stage) {
-    // UpdateCoefficients(stage);
-    edge_manager_.UpdatePeriodCells();
-    mesh_->ForEachEdge([&](EdgeType& edge) {
+    UpdateCoefficients(stage);
+    edge_manager_.ForEachInteriorEdge([&](EdgeType& edge) {
       GetFluxOnInteriorEdge(edge, stage);
     });
+    edge_manager_.ForEachPeriodicEdge([&](EdgeType& edge_a, EdgeType& edge_b) {
+      GetFluxOnPeriodicEdge(edge_a, edge_b, stage);
+    });
+
   }
   FluxType GetRHS(CellType& cell) {
     auto rhs = FluxType();
@@ -157,37 +184,43 @@ class Rkvr {
     return rhs;
   }
   void InitializeVrMatrix() {
-    mesh_->ForEachEdge([&](EdgeType& edge) {
+    edge_manager_.ForEachInteriorEdge([&](EdgeType& edge) {
       edge.InitializeBmat();
+    });
+    edge_manager_.ForEachPeriodicEdge([&](EdgeType& edge_a, EdgeType& edge_b) {
+      auto vec_ab = PointType(edge_b.Center() - edge_a.Center());
+      edge_a.InitializeBmat(vec_ab);
+      edge_b.b_matrix = edge_a.b_matrix;
     });
     mesh_->ForEachCell([&](CellType& cell) {
       cell.InitializeAmatInv();
       cell.InitializeBvecMat();
+      cell.data.Initialize();
     });
   }
   void UpdateCoefficients(int stage) {
     mesh_->ForEachCell([&](CellType& cell) {
-      Eigen::Matrix<Scalar, 3, 1> vec;
+      Eigen::Matrix<Scalar, 3, 1> vec = Eigen::Matrix<Scalar, 3, 1>::Zero();
       int i = 0;
       cell.ForEachEdge([&](EdgeType& edge) {
-        vec(i++) = edge.GetOpposite(&cell)->data.u_stages[stage] - cell.data.u_stages[stage];
+        vec(i++) += edge.GetOpposite(&cell)->data.u_stages[stage] - cell.data.u_stages[stage];
       });
       cell.b_vector = cell.b_vector_mat * vec;
     });
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 8; ++i) {
       mesh_->ForEachCell([&](CellType& cell) {
-        cell.data.coefficients = -0.3 * cell.data.coefficients;
+        cell.data.coefficients *= -0.3;
+        Vector temp = Vector::Zero();
         cell.ForEachEdge([&](EdgeType& edge) {
           CellType* neighber = edge.GetOpposite(&cell);
           if (neighber->I() < cell.I()) {
-            cell.data.coefficients += cell.a_matrix_inv * edge.b_matrix *
-                neighber->data.coefficients * 1.3;
+            temp += (cell.a_matrix_inv * edge.b_matrix) * neighber->data.coefficients;
           } else {
-            cell.data.coefficients += cell.a_matrix_inv * (edge.b_matrix.transpose()) *
-                neighber->data.coefficients * 1.3;
+            temp += (cell.a_matrix_inv * edge.b_matrix.transpose()) * neighber->data.coefficients;
           }
-          cell.data.coefficients += cell.a_matrix_inv * cell.b_vector * 1.3;
         });
+        temp += cell.a_matrix_inv * cell.b_vector;
+        cell.data.coefficients += temp * 1.3;
       });
     }
   }

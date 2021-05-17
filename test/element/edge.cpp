@@ -1,5 +1,6 @@
 // Copyright 2021 Minghao Yang
 #include "buaa/element/edge.hpp"
+#include "buaa/element/triangle.hpp"
 
 #include "gtest/gtest.h"
 

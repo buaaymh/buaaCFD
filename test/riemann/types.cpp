@@ -23,6 +23,12 @@ TEST_F(TestIdealGas, TestConverters) {
   EXPECT_DOUBLE_EQ(primitive_copy.u(), u);
   EXPECT_DOUBLE_EQ(primitive_copy.v(), v);
   EXPECT_DOUBLE_EQ(primitive_copy.p(), p);
+  Primitive<2> primitive_2 = primitive_copy;
+  primitive_2 += primitive_copy * 2.0;
+  EXPECT_EQ(primitive_2.rho(), rho * 3);
+  EXPECT_DOUBLE_EQ(primitive_2.u(), u * 3);
+  EXPECT_DOUBLE_EQ(primitive_2.v(), v * 3);
+  EXPECT_DOUBLE_EQ(primitive_2.p(), p * 3);
 }
 
 }  // namespace riemann

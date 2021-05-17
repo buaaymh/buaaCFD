@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+#include "buaa/riemann/types.hpp"
 #include "buaa/element/gauss.hpp"
 #include "buaa/element/node.hpp"
 
@@ -22,6 +23,7 @@ class Edge {
   using Gauss = element::Gauss<num_quad_points>;
   using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
   using Vector = Eigen::Matrix<Scalar, num_coefficients, 1>;
+  using Flux = riemann::Flux<2>;
   // Constructors:
   Edge() = default;
   Edge(const NodeType& head, const NodeType& tail) : head_(head), tail_(tail) {
@@ -44,12 +46,22 @@ class Edge {
   }
   template <class Integrand>
   Scalar Integrate(Integrand&& integrand) const {
-    Scalar result = 0.0;
+    Scalar result{0.0};
     for (int i = 0; i < num_quad_points; ++i) {
       result += integrand(quad_points_[i]) * gauss_.weights[i];
     }
-    return result * 0.5 * Measure();
+    result *= 0.5 * Measure();
+    return result;
   }
+  // template <class Value, class Integrand>
+  // Value Integrate(Integrand&& integrand) const {
+  //   Scalar result;
+  //   for (int i = 0; i < num_quad_points; ++i) {
+  //     result += integrand(quad_points_[i]) * gauss_.weights[i];
+  //   }
+  //   result *= 0.5 * Measure();
+  //   return result;
+  // }
   template <class Integrand>
   Matrix IntegrateM(Integrand&& integrand) const {
     Matrix result;

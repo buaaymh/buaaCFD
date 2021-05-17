@@ -64,6 +64,11 @@ class Tuple {
     return (this->mass == that.mass) && (this->energy == that.energy) &&
            (this->momentum == that.momentum);
   }
+  Tuple operator*(const Scalar& s) {
+    Tuple value = *this;
+    value *= s;
+    return value;
+  }
 };
 template <int kDim>
 class Flux : public Tuple<kDim> {

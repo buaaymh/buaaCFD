@@ -168,20 +168,30 @@ TEST_F(MeshTest, GetSide) {
   // edges[0] == {nodes[0], nodes[1]}
   EXPECT_EQ(edges[0]->GetPositiveSide(), cells[0]);
   EXPECT_EQ(edges[0]->GetNegativeSide(), nullptr);
+  EXPECT_EQ(edges[0]->GetOpposite(nullptr), cells[0]);
+  EXPECT_EQ(edges[0]->GetOpposite(cells[0]), nullptr);
   // edges[1] == {nodes[1], nodes[2]}
   EXPECT_EQ(edges[1]->GetPositiveSide(), cells[0]);
   EXPECT_EQ(edges[1]->GetNegativeSide(), nullptr);
+  EXPECT_EQ(edges[1]->GetOpposite(nullptr), cells[0]);
+  EXPECT_EQ(edges[1]->GetOpposite(cells[0]), nullptr);
   // edges[4] == {nodes[0], nodes[2]}
   EXPECT_EQ(edges[4]->GetPositiveSide(), cells[1]);
   EXPECT_EQ(edges[4]->GetNegativeSide(), cells[0]);
+  EXPECT_EQ(edges[4]->GetOpposite(cells[0]), cells[1]);
+  EXPECT_EQ(edges[4]->GetOpposite(cells[1]), cells[0]);
   // edges[2] == {nodes[2], nodes[3]}
   EXPECT_EQ(edges[2]->GetPositiveSide(), cells[1]);
   EXPECT_EQ(edges[2]->GetNegativeSide(), nullptr);
+  EXPECT_EQ(edges[2]->GetOpposite(nullptr), cells[1]);
+  EXPECT_EQ(edges[2]->GetOpposite(cells[1]), nullptr);
   // edges[3] == {nodes[0], nodes[3]}
   EXPECT_EQ(edges[3]->GetPositiveSide(), nullptr);
   EXPECT_EQ(edges[3]->GetNegativeSide(), cells[1]);
+  EXPECT_EQ(edges[3]->GetOpposite(nullptr), cells[1]);
+  EXPECT_EQ(edges[3]->GetOpposite(cells[1]), nullptr);
 }
-TEST_F(MeshTest, Polynomial) {
+TEST_F(MeshTest, GetMatrix) {
   /*
      3 -- [2] -- 2
      |  (1)   /  |
@@ -208,19 +218,30 @@ TEST_F(MeshTest, Polynomial) {
   EXPECT_EQ(mesh.CountNodes(), x.size());
   EXPECT_EQ(mesh.CountCells(), 2);
   EXPECT_EQ(mesh.CountEdges(), 5);
-  auto distance = (cells[1]->Center() - cells[0]->Center()).norm();
-  auto mat = edges[4]->IntegrateM([&](const PointType& point) {
-      return cells[1]->InitializeMatWith(point.X(), point.Y(), cells[0], distance);
-  });
-  std::cout << mat << std::endl << std::endl;
-  std::cout << cells[0]->F_0_0_0(0.5, 0.5) << std::endl;
-  std::cout << cells[0]->F_0_1_0(0.5, 0.5) << std::endl;
-  std::cout << cells[0]->F_1_0_0(0.5, 0.5) << std::endl;
-  std::cout << cells[0]->F_1_0_1(0.5, 0.5) << std::endl << std::endl;
-  std::cout << cells[1]->F_0_0_0(0.5, 0.5) << std::endl;
-  std::cout << cells[1]->F_0_1_0(0.5, 0.5) << std::endl;
-  std::cout << cells[1]->F_1_0_0(0.5, 0.5) << std::endl;
-  std::cout << cells[1]->F_1_0_1(0.5, 0.5) << std::endl << std::endl;
+  auto x_31 = PointType(edges[1]->Center() - edges[3]->Center());
+  auto x_02 = PointType(edges[2]->Center() - edges[0]->Center());
+  edges[0]->distance = (edges[0]->GetPositiveSide()->Center() -
+                        cells[1]->Center() + x_02).norm();
+  edges[1]->distance = (edges[1]->GetPositiveSide()->Center() -
+                        cells[1]->Center() - x_31).norm();
+  edges[2]->distance = (edges[2]->GetPositiveSide()->Center() -
+                        cells[0]->Center() - x_02).norm();
+  edges[3]->distance = (cells[0]->Center() - x_31 -
+                        edges[3]->GetNegativeSide()->Center()).norm();
+  edges[4]->distance = (edges[4]->GetPositiveSide()->Center() -
+                        edges[4]->GetNegativeSide()->Center()).norm();
+  edges[4]->InitializeBmat();
+  auto b_mat = edges[4]->b_matrix;
+  EXPECT_EQ(b_mat.size(), 4);
+  std::cout << b_mat << std::endl << std::endl;
+  cells[0]->InitializeAmatInv();
+  auto a_mat_inv = cells[0]->a_matrix_inv;
+  EXPECT_EQ(a_mat_inv.size(), 4);
+  std::cout << a_mat_inv << std::endl << std::endl;
+  cells[1]->InitializeAmatInv();
+  a_mat_inv = cells[1]->a_matrix_inv;
+  EXPECT_EQ(a_mat_inv.size(), 4);
+  std::cout << a_mat_inv << std::endl << std::endl;
 }
 
 }  // namespace mesh
