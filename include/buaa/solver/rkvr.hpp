@@ -175,11 +175,8 @@ class Rkvr {
   FluxType GetRHS(CellType& cell) {
     auto rhs = FluxType();
     cell.ForEachEdge([&](EdgeType& edge) {
-      if (edge.GetPositiveSide() == &cell) {
-        rhs -= edge.data.flux;
-      } else {
-        rhs += edge.data.flux;
-      }
+      if (edge.GetPositiveSide() == &cell) { rhs -= edge.data.flux; }
+      else { rhs += edge.data.flux; }
     });
     return rhs;
   }

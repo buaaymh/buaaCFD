@@ -23,7 +23,6 @@ class Edge {
   using Gauss = element::Gauss<num_quad_points>;
   using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
   using Vector = Eigen::Matrix<Scalar, num_coefficients, 1>;
-  using Flux = riemann::Flux<2>;
   // Constructors:
   Edge() = default;
   Edge(const NodeType& head, const NodeType& tail) : head_(head), tail_(tail) {

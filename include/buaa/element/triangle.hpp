@@ -142,20 +142,19 @@ class Triangle<1> : public Triangle<0> {
     Matrix mat;
     Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
     Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
-    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x + ab.X(), y + ab.Y()) +
-                p1 * F_0_1_0(x, y) * that->F_0_1_0(x + ab.X(), y + ab.Y());
-    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x + ab.X(), y + ab.Y());
-    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x + ab.X(), y + ab.Y());
-    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x + ab.X(), y + ab.Y()) +
-                p1 * F_1_0_1(x, y) * that->F_1_0_1(x + ab.X(), y + ab.Y());
+    Scalar x_ab = x + ab.X();
+    Scalar y_ab = y + ab.Y();
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x_ab, y_ab);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x_ab, y_ab);
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
     if (I() > that->I()) { mat.transposeInPlace(); }
     return mat;
   }
   Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
-    Vector vec;
-    vec(0) = F_0_0_0(x, y);
-    vec(1) = F_1_0_0(x, y);
-    return vec / distance;
+    return Functions(x, y) / distance;
   }
 
  private:
@@ -203,6 +202,130 @@ class Triangle<2> : public Triangle<1> {
   Scalar F_4_0_0(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) - YY(); }
   Scalar F_4_0_1(Scalar x, Scalar y) { return F_1_0_0(x, y) * DyInv() * 2; }
   Scalar F_4_0_2(Scalar x, Scalar y) { return std::pow(DyInv(), 2) * 2; }
+  Vector Functions(Scalar x, Scalar y) {
+    Vector result;
+    result << F_0_0_0(x, y), F_1_0_0(x, y), F_2_0_0(x, y), F_3_0_0(x, y), F_4_0_0(x, y);
+    return result;
+  }
+  // VR Initialize:
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<2>* that, Scalar distance) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    Scalar p2 = std::pow(distance, +3) / std::pow(Factorial(2), 2);
+    // Level 1 :
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x, y);
+    // Level 2 :
+    mat(0, 2) = p0 * F_0_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_2_1_0(x, y);
+    mat(2, 0) = p0 * F_2_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 3) = p0 * F_0_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_3_1_0(x, y);
+    mat(3, 0) = p0 * F_3_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 4) = p0 * F_0_0_0(x, y) * that->F_4_0_0(x, y);
+    mat(4, 0) = p0 * F_4_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(1, 2) = p0 * F_1_0_0(x, y) * that->F_2_0_0(x, y);
+    mat(2, 1) = p0 * F_2_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 3) = p0 * F_1_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_3_0_1(x, y);
+    mat(3, 1) = p0 * F_3_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(1, 4) = p0 * F_1_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_4_0_1(x, y);
+    mat(4, 1) = p0 * F_4_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(2, 2) = p0 * F_2_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_2_1_0(x, y) +
+                p2 * F_2_2_0(x, y) * that->F_2_2_0(x, y);
+    mat(2, 3) = p0 * F_2_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_3_1_0(x, y);
+    mat(3, 2) = p0 * F_3_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_2_1_0(x, y);
+    mat(2, 4) = p0 * F_2_0_0(x, y) * that->F_4_0_0(x, y);
+    mat(4, 2) = p0 * F_4_0_0(x, y) * that->F_2_0_0(x, y);
+    mat(3, 3) = p0 * F_3_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_3_1_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_3_0_1(x, y) +
+                p2 * F_3_1_1(x, y) * that->F_3_1_1(x, y);
+    mat(3, 4) = p0 * F_3_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_4_0_1(x, y);
+    mat(4, 3) = p0 * F_4_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_3_0_1(x, y);
+    mat(4, 4) = p0 * F_4_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_4_0_1(x, y) +
+                p2 * F_4_0_2(x, y) * that->F_4_0_2(x, y);
+    if (I() > that->I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<2>* that, Scalar distance, const PointType& ab) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    Scalar p2 = std::pow(distance, +3) / std::pow(Factorial(2), 2);
+    Scalar x_ab = x + ab.X();
+    Scalar y_ab = y + ab.Y();
+    // Level 1 :
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x_ab, y_ab);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x_ab, y_ab);
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    // Level 2 :
+    mat(0, 2) = p0 * F_0_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_2_1_0(x_ab, y_ab);
+    mat(2, 0) = p0 * F_2_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 3) = p0 * F_0_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_3_1_0(x_ab, y_ab);
+    mat(3, 0) = p0 * F_3_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 4) = p0 * F_0_0_0(x, y) * that->F_4_0_0(x_ab, y_ab);
+    mat(4, 0) = p0 * F_4_0_0(x, y) * that->F_0_0_0(x_ab, y_ab);
+    mat(1, 2) = p0 * F_1_0_0(x, y) * that->F_2_0_0(x_ab, y_ab);
+    mat(2, 1) = p0 * F_2_0_0(x, y) * that->F_1_0_0(x_ab, y_ab);
+    mat(1, 3) = p0 * F_1_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_3_0_1(x_ab, y_ab);
+    mat(3, 1) = p0 * F_3_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(1, 4) = p0 * F_1_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_4_0_1(x_ab, y_ab);
+    mat(4, 1) = p0 * F_4_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(2, 2) = p0 * F_2_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_2_1_0(x_ab, y_ab) +
+                p2 * F_2_2_0(x, y) * that->F_2_2_0(x_ab, y_ab);
+    mat(2, 3) = p0 * F_2_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_3_1_0(x_ab, y_ab);
+    mat(3, 2) = p0 * F_3_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_2_1_0(x_ab, y_ab);
+    mat(2, 4) = p0 * F_2_0_0(x, y) * that->F_4_0_0(x_ab, y_ab);
+    mat(4, 2) = p0 * F_4_0_0(x, y) * that->F_2_0_0(x_ab, y_ab);
+    mat(3, 3) = p0 * F_3_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_3_1_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_3_0_1(x_ab, y_ab) +
+                p2 * F_3_1_1(x, y) * that->F_3_1_1(x_ab, y_ab);
+    mat(3, 4) = p0 * F_3_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_4_0_1(x_ab, y_ab);
+    mat(4, 3) = p0 * F_4_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_3_0_1(x_ab, y_ab);
+    mat(4, 4) = p0 * F_4_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_4_0_1(x_ab, y_ab) +
+                p2 * F_4_0_2(x, y) * that->F_4_0_2(x_ab, y_ab);
+    if (I() > that->I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
+    return Functions(x, y) / distance;
+  }
+
  private:
   Scalar xx_;
   Scalar xy_;
@@ -258,6 +381,412 @@ class Triangle<3> : public Triangle<2> {
   Scalar F_8_0_1(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) * DyInv() * 3; }
   Scalar F_8_0_2(Scalar x, Scalar y) { return F_1_0_0(x, y) * std::pow(DyInv(), 2) * 6; }
   Scalar F_8_0_3(Scalar x, Scalar y) { return std::pow(DyInv(), 3) * 6; }
+  Vector Functions(Scalar x, Scalar y) {
+    Vector result;
+    result << F_0_0_0(x, y), F_1_0_0(x, y), F_2_0_0(x, y), F_3_0_0(x, y), F_4_0_0(x, y),
+              F_5_0_0(x, y), F_6_0_0(x, y), F_7_0_0(x, y), F_8_0_0(x, y);
+    return result;
+  }
+  // VR Initialize:
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<3>* that, Scalar distance) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    Scalar p2 = std::pow(distance, +3) / std::pow(Factorial(2), 2);
+    Scalar p3 = std::pow(distance, +5) / std::pow(Factorial(3), 2);
+    // Level 1 :
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x, y);
+    // Level 2 :
+    mat(0, 2) = p0 * F_0_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_2_1_0(x, y);
+    mat(2, 0) = p0 * F_2_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 3) = p0 * F_0_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_3_1_0(x, y);
+    mat(3, 0) = p0 * F_3_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 4) = p0 * F_0_0_0(x, y) * that->F_4_0_0(x, y);
+    mat(4, 0) = p0 * F_4_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(1, 2) = p0 * F_1_0_0(x, y) * that->F_2_0_0(x, y);
+    mat(2, 1) = p0 * F_2_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 3) = p0 * F_1_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_3_0_1(x, y);
+    mat(3, 1) = p0 * F_3_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(1, 4) = p0 * F_1_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_4_0_1(x, y);
+    mat(4, 1) = p0 * F_4_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(2, 2) = p0 * F_2_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_2_1_0(x, y) +
+                p2 * F_2_2_0(x, y) * that->F_2_2_0(x, y);
+    mat(2, 3) = p0 * F_2_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_3_1_0(x, y);
+    mat(3, 2) = p0 * F_3_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_2_1_0(x, y);
+    mat(2, 4) = p0 * F_2_0_0(x, y) * that->F_4_0_0(x, y);
+    mat(4, 2) = p0 * F_4_0_0(x, y) * that->F_2_0_0(x, y);
+    mat(3, 3) = p0 * F_3_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_3_1_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_3_0_1(x, y) +
+                p2 * F_3_1_1(x, y) * that->F_3_1_1(x, y);
+    mat(3, 4) = p0 * F_3_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_4_0_1(x, y);
+    mat(4, 3) = p0 * F_4_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_3_0_1(x, y);
+    mat(4, 4) = p0 * F_4_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_4_0_1(x, y) +
+                p2 * F_4_0_2(x, y) * that->F_4_0_2(x, y);
+    // Level 3 :
+    mat(0, 5) = p0 * F_0_0_0(x, y) * that->F_5_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_5_1_0(x, y);
+    mat(5, 0) = p0 * F_5_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_5_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 6) = p0 * F_0_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_6_1_0(x, y);
+    mat(6, 0) = p0 * F_6_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_6_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 7) = p0 * F_0_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_0_1_0(x, y) * that->F_7_1_0(x, y);
+    mat(7, 0) = p0 * F_7_0_0(x, y) * that->F_0_0_0(x, y) +
+                p1 * F_7_1_0(x, y) * that->F_0_1_0(x, y);
+    mat(0, 8) = p0 * F_0_0_0(x, y) * that->F_8_0_0(x, y);
+    mat(8, 0) = p0 * F_8_0_0(x, y) * that->F_0_0_0(x, y);
+    mat(1, 5) = p0 * F_1_0_0(x, y) * that->F_5_0_0(x, y);
+    mat(5, 1) = p0 * F_5_0_0(x, y) * that->F_1_0_0(x, y);
+    mat(1, 6) = p0 * F_1_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_6_0_1(x, y);
+    mat(6, 1) = p0 * F_6_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_6_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(1, 7) = p0 * F_1_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_7_0_1(x, y);
+    mat(7, 1) = p0 * F_7_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_7_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(1, 8) = p0 * F_1_0_0(x, y) * that->F_8_0_0(x, y) +
+                p1 * F_1_0_1(x, y) * that->F_8_0_1(x, y);
+    mat(8, 1) = p0 * F_8_0_0(x, y) * that->F_1_0_0(x, y) +
+                p1 * F_8_0_1(x, y) * that->F_1_0_1(x, y);
+    mat(2, 5) = p0 * F_2_0_0(x, y) * that->F_5_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_5_1_0(x, y) +
+                p2 * F_2_2_0(x, y) * that->F_5_2_0(x, y);
+    mat(5, 2) = p0 * F_5_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_5_1_0(x, y) * that->F_2_1_0(x, y) +
+                p2 * F_5_2_0(x, y) * that->F_2_2_0(x, y);
+    mat(2, 6) = p0 * F_2_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_6_1_0(x, y) +
+                p2 * F_2_2_0(x, y) * that->F_6_2_0(x, y);
+    mat(6, 2) = p0 * F_6_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_6_1_0(x, y) * that->F_2_1_0(x, y) +
+                p2 * F_6_2_0(x, y) * that->F_2_2_0(x, y);
+    mat(2, 7) = p0 * F_2_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_2_1_0(x, y) * that->F_7_1_0(x, y);
+    mat(7, 2) = p0 * F_7_0_0(x, y) * that->F_2_0_0(x, y) +
+                p1 * F_7_1_0(x, y) * that->F_2_1_0(x, y);
+    mat(2, 8) = p0 * F_2_0_0(x, y) * that->F_8_0_0(x, y);
+    mat(8, 2) = p0 * F_8_0_0(x, y) * that->F_2_0_0(x, y);
+    mat(3, 5) = p0 * F_3_0_0(x, y) * that->F_5_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_5_1_0(x, y);
+    mat(5, 3) = p0 * F_5_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_5_1_0(x, y) * that->F_3_1_0(x, y);
+    mat(3, 6) = p0 * F_3_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_6_1_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_6_0_1(x, y) +
+                p2 * F_3_1_1(x, y) * that->F_6_1_1(x, y);
+    mat(6, 3) = p0 * F_6_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_6_1_0(x, y) * that->F_3_1_0(x, y) +
+                p1 * F_6_0_1(x, y) * that->F_3_0_1(x, y) +
+                p2 * F_6_1_1(x, y) * that->F_3_1_1(x, y);
+    mat(3, 7) = p0 * F_3_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_3_1_0(x, y) * that->F_7_1_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_7_0_1(x, y) +
+                p2 * F_3_1_1(x, y) * that->F_7_1_1(x, y);
+    mat(7, 3) = p0 * F_7_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_7_1_0(x, y) * that->F_3_1_0(x, y) +
+                p1 * F_7_0_1(x, y) * that->F_3_0_1(x, y) +
+                p2 * F_7_1_1(x, y) * that->F_3_1_1(x, y);
+    mat(3, 8) = p0 * F_3_0_0(x, y) * that->F_8_0_0(x, y) +
+                p1 * F_3_0_1(x, y) * that->F_8_0_1(x, y);
+    mat(8, 3) = p0 * F_8_0_0(x, y) * that->F_3_0_0(x, y) +
+                p1 * F_8_0_1(x, y) * that->F_3_0_1(x, y);
+    mat(4, 5) = p0 * F_4_0_0(x, y) * that->F_5_0_0(x, y);
+    mat(5, 4) = p0 * F_5_0_0(x, y) * that->F_4_0_0(x, y);
+    mat(4, 6) = p0 * F_4_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_6_0_1(x, y);
+    mat(6, 4) = p0 * F_6_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_6_0_1(x, y) * that->F_4_0_1(x, y);
+    mat(4, 7) = p0 * F_4_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_7_0_1(x, y) +
+                p2 * F_4_0_2(x, y) * that->F_7_0_2(x, y);
+    mat(7, 4) = p0 * F_7_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_7_0_1(x, y) * that->F_4_0_1(x, y) +
+                p2 * F_7_0_2(x, y) * that->F_4_0_2(x, y);
+    mat(4, 8) = p0 * F_4_0_0(x, y) * that->F_8_0_0(x, y) +
+                p1 * F_4_0_1(x, y) * that->F_8_0_1(x, y) +
+                p2 * F_4_0_2(x, y) * that->F_8_0_2(x, y);
+    mat(8, 4) = p0 * F_8_0_0(x, y) * that->F_4_0_0(x, y) +
+                p1 * F_8_0_1(x, y) * that->F_4_0_1(x, y) +
+                p2 * F_8_0_2(x, y) * that->F_4_0_2(x, y);
+    mat(5, 5) = p0 * F_5_0_0(x, y) * that->F_5_0_0(x, y) +
+                p1 * F_5_1_0(x, y) * that->F_5_1_0(x, y) +
+                p2 * F_5_2_0(x, y) * that->F_5_2_0(x, y) +
+                p3 * F_5_3_0(x, y) * that->F_5_3_0(x, y);
+    mat(5, 6) = p0 * F_5_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_5_1_0(x, y) * that->F_6_1_0(x, y) +
+                p2 * F_5_2_0(x, y) * that->F_6_2_0(x, y);
+    mat(6, 5) = p0 * F_6_0_0(x, y) * that->F_5_0_0(x, y) +
+                p1 * F_6_1_0(x, y) * that->F_5_1_0(x, y) +
+                p2 * F_6_2_0(x, y) * that->F_5_2_0(x, y);
+    mat(5, 7) = p0 * F_5_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_5_1_0(x, y) * that->F_7_1_0(x, y);
+    mat(7, 5) = p0 * F_7_0_0(x, y) * that->F_5_0_0(x, y) +
+                p1 * F_7_1_0(x, y) * that->F_5_1_0(x, y);
+    mat(5, 8) = p0 * F_5_0_0(x, y) * that->F_8_0_0(x, y);
+    mat(8, 5) = p0 * F_8_0_0(x, y) * that->F_5_0_0(x, y);
+    mat(6, 6) = p0 * F_6_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_6_1_0(x, y) * that->F_6_1_0(x, y) +
+                p1 * F_6_0_1(x, y) * that->F_6_0_1(x, y) +
+                p2 * F_6_2_0(x, y) * that->F_6_2_0(x, y) +
+                p2 * F_6_1_1(x, y) * that->F_6_1_1(x, y) +
+                p3 * F_6_2_1(x, y) * that->F_6_2_1(x, y);
+    mat(6, 7) = p0 * F_6_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_6_1_0(x, y) * that->F_7_1_0(x, y) +
+                p1 * F_6_0_1(x, y) * that->F_7_0_1(x, y) +
+                p2 * F_6_1_1(x, y) * that->F_7_1_1(x, y);
+    mat(7, 6) = p0 * F_7_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_7_1_0(x, y) * that->F_6_1_0(x, y) +
+                p1 * F_7_0_1(x, y) * that->F_6_0_1(x, y) +
+                p2 * F_7_1_1(x, y) * that->F_6_1_1(x, y);
+    mat(6, 8) = p0 * F_6_0_0(x, y) * that->F_8_0_0(x, y) +
+                p1 * F_6_0_1(x, y) * that->F_8_0_1(x, y);
+    mat(8, 6) = p0 * F_8_0_0(x, y) * that->F_6_0_0(x, y) +
+                p1 * F_8_0_1(x, y) * that->F_6_0_1(x, y);
+    mat(7, 7) = p0 * F_7_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_7_1_0(x, y) * that->F_7_1_0(x, y) +
+                p1 * F_7_0_1(x, y) * that->F_7_0_1(x, y) +
+                p2 * F_7_1_1(x, y) * that->F_7_1_1(x, y) +
+                p2 * F_7_0_2(x, y) * that->F_7_0_2(x, y) +
+                p3 * F_7_1_2(x, y) * that->F_7_1_2(x, y);
+    mat(7, 8) = p0 * F_7_0_0(x, y) * that->F_8_0_0(x, y) +
+                p1 * F_7_0_1(x, y) * that->F_8_0_1(x, y) +
+                p2 * F_7_0_2(x, y) * that->F_8_0_2(x, y);
+    mat(8, 7) = p0 * F_8_0_0(x, y) * that->F_7_0_0(x, y) +
+                p1 * F_8_0_1(x, y) * that->F_7_0_1(x, y) +
+                p2 * F_8_0_2(x, y) * that->F_7_0_2(x, y);
+    mat(8, 8) = p0 * F_8_0_0(x, y) * that->F_8_0_0(x, y) +
+                p1 * F_8_0_1(x, y) * that->F_8_0_1(x, y) +
+                p2 * F_8_0_2(x, y) * that->F_8_0_2(x, y) +
+                p3 * F_8_0_3(x, y) * that->F_8_0_3(x, y);
+
+    if (I() > that->I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<3>* that, Scalar distance, const PointType& ab) {
+    Matrix mat;
+    Scalar p0 = std::pow(distance, -1) / std::pow(Factorial(0), 2);
+    Scalar p1 = std::pow(distance, +1) / std::pow(Factorial(1), 2);
+    Scalar p2 = std::pow(distance, +3) / std::pow(Factorial(2), 2);
+    Scalar p3 = std::pow(distance, +5) / std::pow(Factorial(3), 2);
+    Scalar x_ab = x + ab.X();
+    Scalar y_ab = y + ab.Y();
+    // Level 1 :
+    mat(0, 0) = p0 * F_0_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 1) = p0 * F_0_0_0(x, y) * that->F_1_0_0(x_ab, y_ab);
+    mat(1, 0) = p0 * F_1_0_0(x, y) * that->F_0_0_0(x_ab, y_ab);
+    mat(1, 1) = p0 * F_1_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    // Level 2 :
+    mat(0, 2) = p0 * F_0_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_2_1_0(x_ab, y_ab);
+    mat(2, 0) = p0 * F_2_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 3) = p0 * F_0_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_3_1_0(x_ab, y_ab);
+    mat(3, 0) = p0 * F_3_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 4) = p0 * F_0_0_0(x, y) * that->F_4_0_0(x_ab, y_ab);
+    mat(4, 0) = p0 * F_4_0_0(x, y) * that->F_0_0_0(x_ab, y_ab);
+    mat(1, 2) = p0 * F_1_0_0(x, y) * that->F_2_0_0(x_ab, y_ab);
+    mat(2, 1) = p0 * F_2_0_0(x, y) * that->F_1_0_0(x_ab, y_ab);
+    mat(1, 3) = p0 * F_1_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_3_0_1(x_ab, y_ab);
+    mat(3, 1) = p0 * F_3_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(1, 4) = p0 * F_1_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_4_0_1(x_ab, y_ab);
+    mat(4, 1) = p0 * F_4_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(2, 2) = p0 * F_2_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_2_1_0(x_ab, y_ab) +
+                p2 * F_2_2_0(x, y) * that->F_2_2_0(x_ab, y_ab);
+    mat(2, 3) = p0 * F_2_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_3_1_0(x_ab, y_ab);
+    mat(3, 2) = p0 * F_3_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_2_1_0(x_ab, y_ab);
+    mat(2, 4) = p0 * F_2_0_0(x, y) * that->F_4_0_0(x_ab, y_ab);
+    mat(4, 2) = p0 * F_4_0_0(x, y) * that->F_2_0_0(x_ab, y_ab);
+    mat(3, 3) = p0 * F_3_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_3_1_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_3_0_1(x_ab, y_ab) +
+                p2 * F_3_1_1(x, y) * that->F_3_1_1(x_ab, y_ab);
+    mat(3, 4) = p0 * F_3_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_4_0_1(x_ab, y_ab);
+    mat(4, 3) = p0 * F_4_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_3_0_1(x_ab, y_ab);
+    mat(4, 4) = p0 * F_4_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_4_0_1(x_ab, y_ab) +
+                p2 * F_4_0_2(x, y) * that->F_4_0_2(x_ab, y_ab);
+    // Level 3 :
+    mat(0, 5) = p0 * F_0_0_0(x, y) * that->F_5_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_5_1_0(x_ab, y_ab);
+    mat(5, 0) = p0 * F_5_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_5_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 6) = p0 * F_0_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_6_1_0(x_ab, y_ab);
+    mat(6, 0) = p0 * F_6_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_6_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 7) = p0 * F_0_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_0_1_0(x, y) * that->F_7_1_0(x_ab, y_ab);
+    mat(7, 0) = p0 * F_7_0_0(x, y) * that->F_0_0_0(x_ab, y_ab) +
+                p1 * F_7_1_0(x, y) * that->F_0_1_0(x_ab, y_ab);
+    mat(0, 8) = p0 * F_0_0_0(x, y) * that->F_8_0_0(x_ab, y_ab);
+    mat(8, 0) = p0 * F_8_0_0(x, y) * that->F_0_0_0(x_ab, y_ab);
+    mat(1, 5) = p0 * F_1_0_0(x, y) * that->F_5_0_0(x_ab, y_ab);
+    mat(5, 1) = p0 * F_5_0_0(x, y) * that->F_1_0_0(x_ab, y_ab);
+    mat(1, 6) = p0 * F_1_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_6_0_1(x_ab, y_ab);
+    mat(6, 1) = p0 * F_6_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_6_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(1, 7) = p0 * F_1_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_7_0_1(x_ab, y_ab);
+    mat(7, 1) = p0 * F_7_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_7_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(1, 8) = p0 * F_1_0_0(x, y) * that->F_8_0_0(x_ab, y_ab) +
+                p1 * F_1_0_1(x, y) * that->F_8_0_1(x_ab, y_ab);
+    mat(8, 1) = p0 * F_8_0_0(x, y) * that->F_1_0_0(x_ab, y_ab) +
+                p1 * F_8_0_1(x, y) * that->F_1_0_1(x_ab, y_ab);
+    mat(2, 5) = p0 * F_2_0_0(x, y) * that->F_5_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_5_1_0(x_ab, y_ab) +
+                p2 * F_2_2_0(x, y) * that->F_5_2_0(x_ab, y_ab);
+    mat(5, 2) = p0 * F_5_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_5_1_0(x, y) * that->F_2_1_0(x_ab, y_ab) +
+                p2 * F_5_2_0(x, y) * that->F_2_2_0(x_ab, y_ab);
+    mat(2, 6) = p0 * F_2_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_6_1_0(x_ab, y_ab) +
+                p2 * F_2_2_0(x, y) * that->F_6_2_0(x_ab, y_ab);
+    mat(6, 2) = p0 * F_6_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_6_1_0(x, y) * that->F_2_1_0(x_ab, y_ab) +
+                p2 * F_6_2_0(x, y) * that->F_2_2_0(x_ab, y_ab);
+    mat(2, 7) = p0 * F_2_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_2_1_0(x, y) * that->F_7_1_0(x_ab, y_ab);
+    mat(7, 2) = p0 * F_7_0_0(x, y) * that->F_2_0_0(x_ab, y_ab) +
+                p1 * F_7_1_0(x, y) * that->F_2_1_0(x_ab, y_ab);
+    mat(2, 8) = p0 * F_2_0_0(x, y) * that->F_8_0_0(x_ab, y_ab);
+    mat(8, 2) = p0 * F_8_0_0(x, y) * that->F_2_0_0(x_ab, y_ab);
+    mat(3, 5) = p0 * F_3_0_0(x, y) * that->F_5_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_5_1_0(x_ab, y_ab);
+    mat(5, 3) = p0 * F_5_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_5_1_0(x, y) * that->F_3_1_0(x_ab, y_ab);
+    mat(3, 6) = p0 * F_3_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_6_1_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_6_0_1(x_ab, y_ab) +
+                p2 * F_3_1_1(x, y) * that->F_6_1_1(x_ab, y_ab);
+    mat(6, 3) = p0 * F_6_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_6_1_0(x, y) * that->F_3_1_0(x_ab, y_ab) +
+                p1 * F_6_0_1(x, y) * that->F_3_0_1(x_ab, y_ab) +
+                p2 * F_6_1_1(x, y) * that->F_3_1_1(x_ab, y_ab);
+    mat(3, 7) = p0 * F_3_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_3_1_0(x, y) * that->F_7_1_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_7_0_1(x_ab, y_ab) +
+                p2 * F_3_1_1(x, y) * that->F_7_1_1(x_ab, y_ab);
+    mat(7, 3) = p0 * F_7_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_7_1_0(x, y) * that->F_3_1_0(x_ab, y_ab) +
+                p1 * F_7_0_1(x, y) * that->F_3_0_1(x_ab, y_ab) +
+                p2 * F_7_1_1(x, y) * that->F_3_1_1(x_ab, y_ab);
+    mat(3, 8) = p0 * F_3_0_0(x, y) * that->F_8_0_0(x_ab, y_ab) +
+                p1 * F_3_0_1(x, y) * that->F_8_0_1(x_ab, y_ab);
+    mat(8, 3) = p0 * F_8_0_0(x, y) * that->F_3_0_0(x_ab, y_ab) +
+                p1 * F_8_0_1(x, y) * that->F_3_0_1(x_ab, y_ab);
+    mat(4, 5) = p0 * F_4_0_0(x, y) * that->F_5_0_0(x_ab, y_ab);
+    mat(5, 4) = p0 * F_5_0_0(x, y) * that->F_4_0_0(x_ab, y_ab);
+    mat(4, 6) = p0 * F_4_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_6_0_1(x_ab, y_ab);
+    mat(6, 4) = p0 * F_6_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_6_0_1(x, y) * that->F_4_0_1(x_ab, y_ab);
+    mat(4, 7) = p0 * F_4_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_7_0_1(x_ab, y_ab) +
+                p2 * F_4_0_2(x, y) * that->F_7_0_2(x_ab, y_ab);
+    mat(7, 4) = p0 * F_7_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_7_0_1(x, y) * that->F_4_0_1(x_ab, y_ab) +
+                p2 * F_7_0_2(x, y) * that->F_4_0_2(x_ab, y_ab);
+    mat(4, 8) = p0 * F_4_0_0(x, y) * that->F_8_0_0(x_ab, y_ab) +
+                p1 * F_4_0_1(x, y) * that->F_8_0_1(x_ab, y_ab) +
+                p2 * F_4_0_2(x, y) * that->F_8_0_2(x_ab, y_ab);
+    mat(8, 4) = p0 * F_8_0_0(x, y) * that->F_4_0_0(x_ab, y_ab) +
+                p1 * F_8_0_1(x, y) * that->F_4_0_1(x_ab, y_ab) +
+                p2 * F_8_0_2(x, y) * that->F_4_0_2(x_ab, y_ab);
+    mat(5, 5) = p0 * F_5_0_0(x, y) * that->F_5_0_0(x_ab, y_ab) +
+                p1 * F_5_1_0(x, y) * that->F_5_1_0(x_ab, y_ab) +
+                p2 * F_5_2_0(x, y) * that->F_5_2_0(x_ab, y_ab) +
+                p3 * F_5_3_0(x, y) * that->F_5_3_0(x_ab, y_ab);
+    mat(5, 6) = p0 * F_5_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_5_1_0(x, y) * that->F_6_1_0(x_ab, y_ab) +
+                p2 * F_5_2_0(x, y) * that->F_6_2_0(x_ab, y_ab);
+    mat(6, 5) = p0 * F_6_0_0(x, y) * that->F_5_0_0(x_ab, y_ab) +
+                p1 * F_6_1_0(x, y) * that->F_5_1_0(x_ab, y_ab) +
+                p2 * F_6_2_0(x, y) * that->F_5_2_0(x_ab, y_ab);
+    mat(5, 7) = p0 * F_5_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_5_1_0(x, y) * that->F_7_1_0(x_ab, y_ab);
+    mat(7, 5) = p0 * F_7_0_0(x, y) * that->F_5_0_0(x_ab, y_ab) +
+                p1 * F_7_1_0(x, y) * that->F_5_1_0(x_ab, y_ab);
+    mat(5, 8) = p0 * F_5_0_0(x, y) * that->F_8_0_0(x_ab, y_ab);
+    mat(8, 5) = p0 * F_8_0_0(x, y) * that->F_5_0_0(x_ab, y_ab);
+    mat(6, 6) = p0 * F_6_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_6_1_0(x, y) * that->F_6_1_0(x_ab, y_ab) +
+                p1 * F_6_0_1(x, y) * that->F_6_0_1(x_ab, y_ab) +
+                p2 * F_6_2_0(x, y) * that->F_6_2_0(x_ab, y_ab) +
+                p2 * F_6_1_1(x, y) * that->F_6_1_1(x_ab, y_ab) +
+                p3 * F_6_2_1(x, y) * that->F_6_2_1(x_ab, y_ab);
+    mat(6, 7) = p0 * F_6_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_6_1_0(x, y) * that->F_7_1_0(x_ab, y_ab) +
+                p1 * F_6_0_1(x, y) * that->F_7_0_1(x_ab, y_ab) +
+                p2 * F_6_1_1(x, y) * that->F_7_1_1(x_ab, y_ab);
+    mat(7, 6) = p0 * F_7_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_7_1_0(x, y) * that->F_6_1_0(x_ab, y_ab) +
+                p1 * F_7_0_1(x, y) * that->F_6_0_1(x_ab, y_ab) +
+                p2 * F_7_1_1(x, y) * that->F_6_1_1(x_ab, y_ab);
+    mat(6, 8) = p0 * F_6_0_0(x, y) * that->F_8_0_0(x_ab, y_ab) +
+                p1 * F_6_0_1(x, y) * that->F_8_0_1(x_ab, y_ab);
+    mat(8, 6) = p0 * F_8_0_0(x, y) * that->F_6_0_0(x_ab, y_ab) +
+                p1 * F_8_0_1(x, y) * that->F_6_0_1(x_ab, y_ab);
+    mat(7, 7) = p0 * F_7_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_7_1_0(x, y) * that->F_7_1_0(x_ab, y_ab) +
+                p1 * F_7_0_1(x, y) * that->F_7_0_1(x_ab, y_ab) +
+                p2 * F_7_1_1(x, y) * that->F_7_1_1(x_ab, y_ab) +
+                p2 * F_7_0_2(x, y) * that->F_7_0_2(x_ab, y_ab) +
+                p3 * F_7_1_2(x, y) * that->F_7_1_2(x_ab, y_ab);
+    mat(7, 8) = p0 * F_7_0_0(x, y) * that->F_8_0_0(x_ab, y_ab) +
+                p1 * F_7_0_1(x, y) * that->F_8_0_1(x_ab, y_ab) +
+                p2 * F_7_0_2(x, y) * that->F_8_0_2(x_ab, y_ab);
+    mat(8, 7) = p0 * F_8_0_0(x, y) * that->F_7_0_0(x_ab, y_ab) +
+                p1 * F_8_0_1(x, y) * that->F_7_0_1(x_ab, y_ab) +
+                p2 * F_8_0_2(x, y) * that->F_7_0_2(x_ab, y_ab);
+    mat(8, 8) = p0 * F_8_0_0(x, y) * that->F_8_0_0(x_ab, y_ab) +
+                p1 * F_8_0_1(x, y) * that->F_8_0_1(x_ab, y_ab) +
+                p2 * F_8_0_2(x, y) * that->F_8_0_2(x_ab, y_ab) +
+                p3 * F_8_0_3(x, y) * that->F_8_0_3(x_ab, y_ab);
+    if (I() > that->I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
+    return Functions(x, y) / distance;
+  }
+
  private:
   Scalar xxx_;
   Scalar xxy_;

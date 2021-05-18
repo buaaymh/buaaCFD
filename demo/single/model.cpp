@@ -72,7 +72,7 @@ class SingleWaveTest {
   using Jacobi = typename Riemann::Jacobi;
   using State = typename Riemann::State;
   using Flux = typename Riemann::Flux;
-  static constexpr int degree = 1;
+  static constexpr int degree = 2;
   static constexpr int num_coefficients = (degree+1) * (degree+2) / 2 - 1;
   using Stages = Eigen::Matrix<Scalar, 3, 1>;
   using Coefficients = Eigen::Matrix<Scalar, num_coefficients, 1>;
@@ -102,9 +102,9 @@ class SingleWaveTest {
   const std::string test_data_dir_{TEST_DATA_DIR};
   const std::string model_name_;
   const std::string mesh_name_;
-  double duration_;
-  double start_;
-  double stop_;
+  Scalar duration_;
+  Scalar start_;
+  Scalar stop_;
   int n_steps_;
   int output_rate_;
 };
