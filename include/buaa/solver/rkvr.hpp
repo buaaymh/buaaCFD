@@ -133,11 +133,12 @@ class Rkvr {
     auto& riemann_ = edge.data.riemann;
     auto cell_l = edge.GetPositiveSide();
     auto cell_r = edge.GetNegativeSide();
-    edge.data.flux = edge.Integrate([&](const PointType& point) {
-      auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
-      auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
-      return riemann_.GetFluxOnTimeAxis(u_l, u_r);
-    });
+    edge.data.flux = FluxType(0);
+    edge.Integrate([&](const PointType& point) {
+        auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
+        auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
+        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+      }, &(edge.data.flux));
   }
   void GetFluxOnPeriodicEdge(EdgeType& edge_a, EdgeType& edge_b, int stage) {
     auto& riemann_ = edge_a.data.riemann;
@@ -145,19 +146,21 @@ class Rkvr {
     auto cell_l = edge_a.GetPositiveSide();
     auto cell_r = edge_a.GetNegativeSide();
     if (cell_l->Contains(&edge_a)) {
-      edge_a.data.flux = edge_a.Integrate([&](const PointType& point) {
+      edge_a.data.flux = FluxType(0);
+      edge_a.Integrate([&](const PointType& point) {
         auto point_ab = PointType(point + vec_ab);
         auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
         auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point_ab);
         return riemann_.GetFluxOnTimeAxis(u_l, u_r);
-      });
+      }, &(edge_a.data.flux));
     } else {
-      edge_a.data.flux = edge_a.Integrate([&](const PointType& point) {
+      edge_a.data.flux = FluxType(0);
+      edge_a.Integrate([&](const PointType& point) {
         auto point_ab = PointType(point + vec_ab);
         auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point_ab);
         auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
         return riemann_.GetFluxOnTimeAxis(u_l, u_r);
-      });
+      }, &(edge_a.data.flux));
     }
     if (cell_l == edge_b.GetPositiveSide()) { edge_b.data.flux = edge_a.data.flux; }
     else { edge_b.data.flux = -edge_a.data.flux; }
@@ -204,7 +207,7 @@ class Rkvr {
       });
       cell.b_vector = cell.b_vector_mat * vec;
     });
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 15; ++i) {
       mesh_->ForEachCell([&](CellType& cell) {
         cell.data.coefficients *= -0.3;
         Vector temp = Vector::Zero();

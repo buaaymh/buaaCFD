@@ -52,30 +52,12 @@ class Edge {
     result *= 0.5 * Measure();
     return result;
   }
-  // template <class Value, class Integrand>
-  // Value Integrate(Integrand&& integrand) const {
-  //   Scalar result;
-  //   for (int i = 0; i < num_quad_points; ++i) {
-  //     result += integrand(quad_points_[i]) * gauss_.weights[i];
-  //   }
-  //   result *= 0.5 * Measure();
-  //   return result;
-  // }
-  template <class Integrand>
-  Matrix IntegrateM(Integrand&& integrand) const {
-    Matrix result;
+  template <class Value, class Integrand>
+  void Integrate(Integrand&& integrand, Value* value) const {
     for (int i = 0; i < num_quad_points; ++i) {
-      result += integrand(quad_points_[i]) * gauss_.weights[i];
+      *value += integrand(quad_points_[i]) * gauss_.weights[i];
     }
-    return result * 0.5 * Measure();
-  }
-  template <class Integrand>
-  Vector IntegrateV(Integrand&& integrand) const {
-    Vector result;
-    for (int i = 0; i < num_quad_points; ++i) {
-      result += integrand(quad_points_[i]) * gauss_.weights[i];
-    }
-    return result * 0.5 * Measure();
+    *value *= 0.5 * Measure();
   }
 
  private:

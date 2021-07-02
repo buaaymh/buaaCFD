@@ -59,19 +59,25 @@ class Triangle : public element::Triangle<kDegree> {
   void ForEachEdge(Visitor&& visitor) { for(auto& e : edges_) {visitor(*e);} }
   // Initialize VR Matrix and Vector:
   void InitializeAmatInv() {
+    Matrix a_matrix = Matrix::Zero();
     ForEachEdge([&](EdgeType& edge) {
-      a_matrix_inv += edge.IntegrateM([&](const PointType& point) {
+      Matrix temp = Matrix::Zero();
+      edge.Integrate([&](const PointType& point) {
         return this->InitializeMatWith(point.X(), point.Y(), this,
                                        edge.distance);
-      });
+      }, &temp);
+      a_matrix += temp;
     });
-    a_matrix_inv = a_matrix_inv.inverse().eval();
+    a_matrix_inv += a_matrix.inverse();
   }
   void InitializeBvecMat() {
+    b_vector_mat = Matrix3V::Zero();
     for (int i = 0; i < 3; ++i) {
-      b_vector_mat.col(i) = edges_[i]->IntegrateV([&](const PointType& point) {
+      Vector temp = Vector::Zero();
+      edges_[i]->Integrate([&](const PointType& point) {
         return this->InitializeVecWith(point.X(), point.Y(), edges_[i]->distance);
-      });
+      }, &temp);
+      b_vector_mat.col(i) = temp;
     }
   }
   // Polynomial:

@@ -78,16 +78,13 @@ TEST_F(EdgeTest, Methods) {
   EXPECT_EQ(e3.GetGauss().weights[1], 1);
 }
 TEST_F(EdgeTest, GaussPoints) {
-  auto e0 = E0(head, tail);
-  e0.ForEachQuadPoint([&](Point const& point) {
-    EXPECT_EQ(point.X(), e0.Center().X());
-    EXPECT_EQ(point.Y(), e0.Center().Y());
-  });
+  // One Degree
   auto e1 = E1(head, tail);
   e1.ForEachQuadPoint([&](Point const& point) {
     EXPECT_EQ(point.X(), e1.Center().X());
     EXPECT_EQ(point.Y(), e1.Center().Y());
   });
+  // Two Degree
   auto e2 = E2(head, tail);
   auto integrand = 0.0;
   int i = 0;
@@ -117,7 +114,8 @@ TEST_F(EdgeTest, GaussPoints) {
   using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
   auto mat = Matrix2();
   mat << 1, 0, 0, 1;
-  auto mat_integrand = e1.IntegrateM([&](const Point& point) { return mat; });
+  Matrix2 mat_integrand = Matrix2::Zero(); 
+  e1.Integrate([&](const Point& point) { return mat; }, &mat_integrand);
   EXPECT_NEAR(mat_integrand(0,0), e1.Measure(), eps);
   EXPECT_NEAR(mat_integrand(1,0), 0.0, eps);
   EXPECT_NEAR(mat_integrand(0,1), 0.0, eps);

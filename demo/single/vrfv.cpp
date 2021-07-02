@@ -19,7 +19,7 @@ namespace solver {
 
 class VrfvTest : public ::testing::Test {
  protected:
-  static constexpr int degree = 1;
+  static constexpr int degree = 3;
   static constexpr int num_coefficients = (degree+1) * (degree+2) / 2 - 1;
   // Types:
   using Stages = Eigen::Matrix<Scalar, 3, 1>;
@@ -79,7 +79,8 @@ TEST_F(VrfvTest, Constructor) {
   // Set Initial Conditions:
   model.SetInitialState([&](Cell& cell) {
     cell.data.u_stages[0] = cell.Integrate([&](auto point){
-        return point.X();}) / cell.Measure();
+        // return std::sin(point.X() * acos(0.0) * 2);}) / cell.Measure();
+        return point.X() * 0.5;}) / cell.Measure();
   });
   model.InitializeVrMatrix();
   model.UpdateCoefficients(0);

@@ -794,7 +794,6 @@ class Triangle<3> : public Triangle<2> {
   Scalar yyy_;
 };
 
-
 }  // namespace element
 }  // namespace buaa
 

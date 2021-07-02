@@ -54,22 +54,22 @@ class Edge : public element::Edge<kDegree> {
   static constexpr int CountCoefficients() { return num_coefficients; }
   // Initialize VR Matrix and Vector:
   void InitializeBmat() {
-    b_matrix += this->IntegrateM([&](const Point& point) {
+    this->Integrate([&](const Point& point) {
       return positive_side_->InitializeMatWith(point.X(), point.Y(),
                                                negative_side_, distance);
-    });
+    }, &b_matrix);
   }
   void InitializeBmat(const Point& vec_ab) {
     if (positive_side_->Contains(this)) {
-      b_matrix += this->IntegrateM([&](const Point& point) {
+      this->Integrate([&](const Point& point) {
         return positive_side_->InitializeMatWith(point.X(), point.Y(), negative_side_,
                                                  distance, vec_ab);
-      });
+      }, &b_matrix);
     } else {
-      b_matrix += this->IntegrateM([&](const Point& point) {
+      this->Integrate([&](const Point& point) {
         return negative_side_->InitializeMatWith(point.X(), point.Y(), positive_side_,
                                                  distance, vec_ab);
-      });
+      }, &b_matrix);
     }
   }
   // Data:
