@@ -79,6 +79,8 @@
     "cassert": "cpp",
     "*.expression": "cpp",
     "geometry": "cpp",
-    "core": "cpp"
+    "core": "cpp",
+    "numbers": "cpp",
+    "semaphore": "cpp"
   }
 }

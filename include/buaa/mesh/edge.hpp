@@ -47,28 +47,31 @@ class Edge : public element::Edge<kDegree> {
     if (cell == positive_side_) { return negative_side_; }
     else { return positive_side_; }
   }
+  static constexpr int CountCoefficients() { return num_coefficients; }
+  Scalar GetNormalX() const { return (Base::Tail().Y() - Base::Head().Y()) / Base::Measure(); }
+  Scalar GetNormalY() const { return (Base::Head().X() - Base::Tail().X()) / Base::Measure(); }
   // Mutators:
   void SetPositiveSide(Cell* cell) { positive_side_ = cell; }
   void SetNegativeSide(Cell* cell) { negative_side_ = cell; }
-  // Accessors:
-  static constexpr int CountCoefficients() { return num_coefficients; }
   // Initialize VR Matrix and Vector:
   void InitializeBmat() {
+    Scalar normal[2] = {GetNormalX(), GetNormalY()};
     this->Integrate([&](const Point& point) {
       return positive_side_->InitializeMatWith(point.X(), point.Y(),
-                                               negative_side_, distance);
+                                               negative_side_, distance, normal);
     }, &b_matrix);
   }
   void InitializeBmat(const Point& vec_ab) {
+    Scalar normal[2] = {GetNormalX(), GetNormalY()};
     if (positive_side_->Contains(this)) {
       this->Integrate([&](const Point& point) {
         return positive_side_->InitializeMatWith(point.X(), point.Y(), negative_side_,
-                                                 distance, vec_ab);
+                                                 distance, vec_ab, normal);
       }, &b_matrix);
     } else {
       this->Integrate([&](const Point& point) {
         return negative_side_->InitializeMatWith(point.X(), point.Y(), positive_side_,
-                                                 distance, vec_ab);
+                                                 distance, vec_ab, normal);
       }, &b_matrix);
     }
   }

@@ -41,11 +41,7 @@ class Triangle : public element::Triangle<kDegree> {
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c,
       EdgeType* ab, EdgeType* bc, EdgeType* ca) : Base(id, a, b, c),
-      edges_{ab, bc, ca} {
-        a_matrix_inv = Matrix::Zero();
-        b_vector = Vector::Zero();
-        b_vector_mat = Matrix3V::Zero();
-      }
+      edges_{ab, bc, ca} {}
   // Accessors:
   static constexpr int CountCoefficients() { return num_coefficients; }
   bool Contains(const EdgeType* edge) const {
@@ -62,13 +58,14 @@ class Triangle : public element::Triangle<kDegree> {
     Matrix a_matrix = Matrix::Zero();
     ForEachEdge([&](EdgeType& edge) {
       Matrix temp = Matrix::Zero();
+      Scalar normal[2] = {edge.GetNormalX(), edge.GetNormalY()};
       edge.Integrate([&](const PointType& point) {
         return this->InitializeMatWith(point.X(), point.Y(), this,
-                                       edge.distance);
+                                       edge.distance, normal);
       }, &temp);
       a_matrix += temp;
     });
-    a_matrix_inv += a_matrix.inverse();
+    a_matrix_inv = a_matrix.inverse();
   }
   void InitializeBvecMat() {
     b_vector_mat = Matrix3V::Zero();

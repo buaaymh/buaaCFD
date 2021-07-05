@@ -1,11 +1,12 @@
 // Copyright 2021 Minghao Yang
-#ifndef BUAA_SOLVER_RKVR_HPP_
-#define BUAA_SOLVER_RKVR_HPP_
+#ifndef INCLUDE_BUAA_SOLVER_RKVR_HPP_
+#define INCLUDE_BUAA_SOLVER_RKVR_HPP_
 
 #include <cmath>
 #include <cstdio>
 #include <memory>
 #include <set>
+#include <stdio.h>
 #include <string>
 
 #include "buaa/mesh/dim2.hpp"
@@ -93,9 +94,8 @@ class Rkvr {
   }
   void Preprocess() {
     mesh_->ForEachEdge([&](EdgeType& edge){
-      auto length = edge.Measure();
-      auto n1 = (edge.Tail().Y() - edge.Head().Y()) / length;
-      auto n2 = (edge.Head().X() - edge.Tail().X()) / length;
+      auto n1 = edge.GetNormalX();
+      auto n2 = edge.GetNormalY();
       edge.data.riemann.Rotate(n1, n2);
       auto cell_l = edge.GetPositiveSide();
       auto cell_r = edge.GetNegativeSide();
@@ -173,7 +173,6 @@ class Rkvr {
     edge_manager_.ForEachPeriodicEdge([&](EdgeType& edge_a, EdgeType& edge_b) {
       GetFluxOnPeriodicEdge(edge_a, edge_b, stage);
     });
-
   }
   FluxType GetRHS(CellType& cell) {
     auto rhs = FluxType();
@@ -200,14 +199,14 @@ class Rkvr {
   }
   void UpdateCoefficients(int stage) {
     mesh_->ForEachCell([&](CellType& cell) {
-      Eigen::Matrix<Scalar, 3, 1> vec = Eigen::Matrix<Scalar, 3, 1>::Zero();
+      Eigen::Matrix<Scalar, 3, 1> vec;
       int i = 0;
       cell.ForEachEdge([&](EdgeType& edge) {
-        vec(i++) += edge.GetOpposite(&cell)->data.u_stages[stage] - cell.data.u_stages[stage];
+        vec(i++) = edge.GetOpposite(&cell)->data.u_stages[stage] - cell.data.u_stages[stage];
       });
       cell.b_vector = cell.b_vector_mat * vec;
     });
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 25; ++i) {
       mesh_->ForEachCell([&](CellType& cell) {
         cell.data.coefficients *= -0.3;
         Vector temp = Vector::Zero();
