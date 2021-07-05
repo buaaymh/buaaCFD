@@ -10,6 +10,20 @@ namespace algebra {
 using namespace Eigen;
 class TestEigen : public ::testing::Test {
 };
+TEST_F(TestEigen, GetData) {
+  Matrix3d a;
+  a << 1, 2, 3, 1, 0, -1, 0, 1, 1;
+  double* data = a.data();
+  EXPECT_EQ(data[0], 1);
+  EXPECT_EQ(data[1], 1);
+  EXPECT_EQ(data[2], 0);
+  EXPECT_EQ(data[3], 2);
+  EXPECT_EQ(data[4], 0);
+  EXPECT_EQ(data[5], 1);
+  EXPECT_EQ(data[6], 3);
+  EXPECT_EQ(data[7], -1);
+  EXPECT_EQ(data[8], 1);
+}
 TEST_F(TestEigen, VectorArithmetic) {
   Vector3d a(0.0, 1.0, 2.0);
   EXPECT_EQ(a.rows(), 3);
