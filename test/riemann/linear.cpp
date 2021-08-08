@@ -7,22 +7,18 @@ namespace buaa {
 namespace riemann {
 
 class TestLinearWaveTest : public ::testing::Test {
- protected:
-  using Solver = Linear;
-  using State = Solver::State;
-  using Flux = Solver::Flux;
 };
 TEST_F(TestLinearWaveTest, TestFlux) {
-  State u_l{2.0}, u_r{1.0};
+  Scalar u_l{2.0}, u_r{1.0};
   // right running wave
-  auto solver = Solver(/* speed = */1.0);
-  EXPECT_EQ(solver.GetFluxOnTimeAxis(u_l, u_r), solver.GetFlux(u_l));
+  Scalar a{1.0};
+  EXPECT_EQ(LinearFlux(u_l, u_r, a), LinearFlux(u_l, a));
   // left running wave
-  solver = Solver(-1.0);
-  EXPECT_EQ(solver.GetFluxOnTimeAxis(u_l, u_r), solver.GetFlux(u_r));
+  a = -1;
+  EXPECT_EQ(LinearFlux(u_l, u_r, a), LinearFlux(u_r, a));
   // standing wave
-  solver = Solver(0.0);
-  EXPECT_EQ(solver.GetFluxOnTimeAxis(u_l, u_r), solver.GetFlux(u_l));
+  a = 0;
+  EXPECT_EQ(LinearFlux(u_l, u_r, a), LinearFlux(u_l, a));
 }
 
 }  // namespace riemann

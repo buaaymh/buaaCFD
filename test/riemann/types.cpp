@@ -17,18 +17,18 @@ TEST_F(TestIdealGas, TestConverters) {
   auto conservative = Conservative<2>{
     rho, rho*u, rho*v, p/(gamma-1) + 0.5*rho*(u*u + v*v)
   };
-  EXPECT_EQ(Gas::PrimitiveToConservative(&primitive), conservative);
+  // EXPECT_FLOAT_EQ(Gas::PrimitiveToConservative(&primitive), conservative);
   auto primitive_copy = Gas::ConservativeToPrimitive(&conservative);
-  EXPECT_EQ(primitive_copy.rho(), rho);
-  EXPECT_DOUBLE_EQ(primitive_copy.u(), u);
-  EXPECT_DOUBLE_EQ(primitive_copy.v(), v);
-  EXPECT_DOUBLE_EQ(primitive_copy.p(), p);
+  EXPECT_FLOAT_EQ(primitive_copy.rho(), rho);
+  EXPECT_FLOAT_EQ(primitive_copy.u(), u);
+  EXPECT_FLOAT_EQ(primitive_copy.v(), v);
+  EXPECT_FLOAT_EQ(primitive_copy.p(), p);
   Primitive<2> primitive_2 = primitive_copy;
   primitive_2 += primitive_copy * 2.0;
-  EXPECT_EQ(primitive_2.rho(), rho * 3);
-  EXPECT_DOUBLE_EQ(primitive_2.u(), u * 3);
-  EXPECT_DOUBLE_EQ(primitive_2.v(), v * 3);
-  EXPECT_DOUBLE_EQ(primitive_2.p(), p * 3);
+  EXPECT_FLOAT_EQ(primitive_2.rho(), rho * 3);
+  EXPECT_FLOAT_EQ(primitive_2.u(), u * 3);
+  EXPECT_FLOAT_EQ(primitive_2.v(), v * 3);
+  EXPECT_FLOAT_EQ(primitive_2.p(), p * 3);
 }
 
 }  // namespace riemann
