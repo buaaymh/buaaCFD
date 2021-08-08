@@ -3,12 +3,12 @@
 #define INCLUDE_BUAA_RIEMANN_TYPES_HPP_
 
 #include <cmath>
-
 #include <Eigen/Dense>
 
 namespace buaa {
 namespace riemann {
-using Scalar = double;
+  
+using Scalar = float;
 using Eigen::Matrix;
 
 template <int kDim>

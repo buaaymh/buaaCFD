@@ -9,29 +9,16 @@ namespace riemann {
 
 class Linear {
  public:
-  static constexpr int kDim = 2;
-  // Types:
-  using Vector = Matrix<Scalar, kDim, 1>;
-  using Coefficient = Matrix<Scalar, kDim, 1>;
-  using Flux = Scalar;
-  using Jacobi = Scalar;
-  using State = Scalar;
-  // Constructor:
-  Linear() : a_const_(1) {}
-  explicit Linear(Scalar const& a_const) : a_const_(a_const) {}
-  // Get F on T Axia:
-  Flux GetFluxOnTimeAxis(State const& left, State const& right) const {
-    if (0 < a_const_) {
-      return left * a_const_;
-    } else {
-      return right* a_const_;
-    }
+  // Get F of U_l and U_r
+  static Scalar GetFlux(Scalar const& left, Scalar const& right,
+                           Scalar const& a) {
+    if (0 < a) { return left * a; }
+    else { return right* a; }
   }
   // Get F of U
-  Flux GetFlux(State const& state) const { return state * a_const_ ; }
-
- private:
-  Scalar a_const_;
+  static Scalar GetFlux(Scalar const& state, Scalar const& a) {
+    return state * a;
+  }
 };
 
 }  // namespace riemann
