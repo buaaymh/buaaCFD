@@ -2,9 +2,6 @@
 #ifndef INCLUDE_BUAA_ELEMENT_TRIANGLE_HPP_
 #define INCLUDE_BUAA_ELEMENT_TRIANGLE_HPP_
 
-#include <array>
-#include <cmath>
-
 #include <Eigen/Dense>
 
 #include "buaa/element/edge.hpp"
@@ -21,8 +18,8 @@ class Triangle<0> {
   // Types:
   using NodeType = Node<2>;
   using PointType = Point<2>;
-  using Matrix3 = Matrix<Scalar, 3, 3>;
-  using Vector3 = Matrix<Scalar, 3, 1>;
+  using Matrix = Eigen::Matrix<Scalar, 3, 3>;
+  using Column = Eigen::Matrix<Scalar, 3, 1>;
   // Constructors:
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c)
@@ -52,30 +49,29 @@ class Triangle<0> {
   static constexpr int Degree() { return 0; }
   // Integrator:
   PointType GetGlobalXY(Scalar a, Scalar b, Scalar c) const {
-    Vector3 abc = Vector3{a, b, c};
-    Vector3 xy = transform_mat_ * (abc);
+    Column abc = Column{a, b, c};
+    Column xy = transform_mat_ * (abc);
     return PointType(xy(1), xy(2));
   }
-  template <class Integrand>
-  Scalar Integrate(Integrand&& integrand) const {
-    Scalar result = 0.0;
+  template <class Value, class Integrand>
+  void Integrate(Integrand&& integrand, Value* value) const {
     for (int i = 0; i < 4; ++i) {
       auto point = GetGlobalXY(local_a[i], local_b[i], local_c[i]);
-      result += integrand(point) * weights[i];
+      *value += integrand(point) * weights[i];
     }
-    return result *= Measure();
+    *value *= Measure();
   }
   // Geometric methods:
   Scalar Measure() const { return measure_; }
   const PointType& Center() const { return center_; }
   // Factorial
-  Scalar Factorial(int p) {
+  static Scalar Factorial(int p) {
     int fac = 1;
     for (int i = 1; i <= p; ++i) { fac *= i; }
     return Scalar(fac);
   }
  private:
-  Scalar GetMeasure(const NodeType& a, const NodeType& b, const NodeType& c) {
+  static Scalar GetMeasure(const NodeType& a, const NodeType& b, const NodeType& c) {
     auto cross = (b.X() - a.X()) * (c.Y() - a.Y()) -
                  (b.Y() - a.Y()) * (c.X() - a.X());   
     return std::abs(cross) * 0.5;
@@ -88,21 +84,19 @@ class Triangle<0> {
                                                   0.5208333333333332,
                                                   0.5208333333333332,
                                                   0.5208333333333332};
- private:
   Id id_;
   const NodeType& a_;
   const NodeType& b_;
   const NodeType& c_;
   Scalar measure_;
   PointType center_;
-  Matrix3 transform_mat_;
+  Matrix transform_mat_;
 };
 
 template <>
 class Triangle<1> : public Triangle<0> {
  public:
   // Types:
-  using Matrix = Eigen::Matrix<Scalar, 2, 2>;
   using Vector = Eigen::Matrix<Scalar, 2, 1>;
   using BasisF = Eigen::Matrix<Scalar, 2, 2>;
   Triangle() = default;
@@ -116,69 +110,26 @@ class Triangle<1> : public Triangle<0> {
   Scalar DxInv() const { return dx_inv_; }
   Scalar DyInv() const { return dy_inv_; }
   // Basis Functions:
-  Scalar F_0_0_0(Scalar x, Scalar y) { return (x - Center().X()) * DxInv(); }
-  Scalar F_0_1_0(Scalar x, Scalar y) { return DxInv(); }
-  Scalar F_1_0_0(Scalar x, Scalar y) { return (y - Center().Y()) * DyInv(); }
-  Scalar F_1_0_1(Scalar x, Scalar y) { return DyInv(); }
+  Scalar F_0_0_0(Scalar x, Scalar y) const { return (x - Center().X()) * DxInv(); }
+  Scalar F_0_1_0(Scalar x, Scalar y) const { return DxInv(); }
+  Scalar F_1_0_0(Scalar x, Scalar y) const { return (y - Center().Y()) * DyInv(); }
+  Scalar F_1_0_1(Scalar x, Scalar y) const { return DyInv(); }
   // Normal Functions:
-  Scalar F_0_N_1(Scalar x, Scalar y, const Scalar* n) { return F_0_1_0(x, y) * n[0]; }
-  Scalar F_1_N_1(Scalar x, Scalar y, const Scalar* n) { return F_1_0_1(x, y) * n[1]; }
-  Vector Functions(Scalar x, Scalar y) {
+  Scalar F_0_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_0_1_0(x, y) * n[0]; }
+  Scalar F_1_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_1_0_1(x, y) * n[1]; }
+  Vector Functions(Scalar x, Scalar y) const {
     Vector result;
     result << F_0_0_0(x, y), F_1_0_0(x, y);
     return result;
   }
-  void GetPArray(Scalar distance, int degree, Scalar* p) {
-    for (int i = 0; i <= degree; ++i)
-      p[i] = std::pow(distance, 2*i-1) / std::pow(Factorial(i), 2);
-  }
-  BasisF GetFuncTable(Triangle<1>* cell, const Scalar* coord, const Scalar* normal) {
+  BasisF GetFuncTable(const Triangle<1>& cell, const Scalar* coord, const Scalar* normal) const {
     BasisF mat = BasisF::Zero();
-    mat(0, 0) = cell->F_0_0_0(coord[0], coord[1]), mat(0, 1) = cell->F_0_N_1(coord[0], coord[1], normal);
-    mat(1, 0) = cell->F_1_0_0(coord[0], coord[1]), mat(1, 1) = cell->F_1_N_1(coord[0], coord[1], normal);
+    mat(0, 0) = cell.F_0_0_0(coord[0], coord[1]), mat(0, 1) = cell.F_0_N_1(coord[0], coord[1], normal);
+    mat(1, 0) = cell.F_1_0_0(coord[0], coord[1]), mat(1, 1) = cell.F_1_N_1(coord[0], coord[1], normal);
     return mat;
   }
-  // VR Initialize:
-  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<1>* that,
-                           Scalar distance, Scalar* n) {
-    Scalar p[2];
-    GetPArray(distance, 1, p);
-    Scalar coord[] = {x, y};
-    // this cell
-    BasisF i = GetFuncTable(this, coord, n);
-    // that cell
-    BasisF j = GetFuncTable(that, coord, n);
-    Matrix mat = Matrix::Zero();
-    for (int m = 0; m != 2; ++m) {
-      for (int n = 0; n != 2; ++n) {
-        for (int k = 0; k != 2; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
-      }
-    }
-    return mat;
-  }
-  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<1>* that,
-                           Scalar distance, const PointType& ab, Scalar* n) {
-    Scalar p[2];
-    GetPArray(distance, 1, p);
-    Scalar coord[] = {x, y}, coord_ab[] = {x + ab.X(), y + ab.Y()};
-    // this cell
-    BasisF i = GetFuncTable(this, coord, n);
-    // that cell
-    BasisF j = GetFuncTable(that, coord_ab, n);
-    Matrix mat = Matrix::Zero();
-    for (int m = 0; m != 2; ++m) {
-      for (int n = 0; n != 2; ++n) {
-        for (int k = 0; k != 2; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
-      }
-    }
-    return mat;
-  }
-  Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
-    return Functions(x, y) / distance;
-  }
-
  private:
-  Scalar GetDelta(Scalar a, Scalar b, Scalar c) {
+  static Scalar GetDelta(Scalar a, Scalar b, Scalar c) {
     auto d = (std::max(std::max(a, b), c) - std::min(std::min(a, b), c)) * 0.5;
     return 1 / d;
   }
@@ -191,241 +142,159 @@ template <>
 class Triangle<2> : public Triangle<1> {
  public:
   // Types:
-  using Matrix = Eigen::Matrix<Scalar, 5, 5>;
   using Vector = Eigen::Matrix<Scalar, 5, 1>;
   using BasisF = Eigen::Matrix<Scalar, 5, 3>;
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c) :
       Triangle<1>{id, a, b, c} {
-    auto measure_inv = 1 / Measure();
-    xx_ = Integrate([&](auto point){
-      return std::pow(F_0_0_0(point.X(), point.Y()), 2); }) * measure_inv;
-    xy_ = Integrate([&](auto point){
-      return F_0_0_0(point.X(), point.Y()) * F_1_0_0(point.X(), point.Y()); }) * measure_inv;
-    yy_ = Integrate([&](auto point){
-      return std::pow(F_1_0_0(point.X(), point.Y()), 2); }) * measure_inv;
+    Scalar measure_inv = 1 / Measure();
+    const_2 = Eigen::Matrix<Scalar, 3, 1>::Zero();
+    auto func = [&](const auto& point){
+      Eigen::Matrix<Scalar, 3, 1> col;
+      col << std::pow(F_0_0_0(point.X(), point.Y()), 2),
+             F_0_0_0(point.X(), point.Y()) * F_1_0_0(point.X(), point.Y()),
+             std::pow(F_1_0_0(point.X(), point.Y()), 2);
+      return col;
+    };
+    Integrate(func, &const_2); const_2 *= measure_inv;
   }
   // Accessors:
   static constexpr int Degree() { return 2; }
-  Scalar XX() const { return xx_; }
-  Scalar XY() const { return xy_; }
-  Scalar YY() const { return yy_; }
+  Scalar XX() const { return const_2(0); }
+  Scalar XY() const { return const_2(1); }
+  Scalar YY() const { return const_2(2); }
   // Basis Functions:
-  Scalar F_2_0_0(Scalar x, Scalar y) { return std::pow(F_0_0_0(x, y), 2) - XX(); }
-  Scalar F_2_1_0(Scalar x, Scalar y) { return F_0_0_0(x, y) * DxInv() * 2; }
-  Scalar F_2_2_0(Scalar x, Scalar y) { return std::pow(DxInv(), 2) * 2; }
+  Scalar F_2_0_0(Scalar x, Scalar y) const { return std::pow(F_0_0_0(x, y), 2) - XX(); }
+  Scalar F_2_1_0(Scalar x, Scalar y) const { return F_0_0_0(x, y) * DxInv() * 2; }
+  Scalar F_2_2_0(Scalar x, Scalar y) const { return std::pow(DxInv(), 2) * 2; }
   // Normal Functions:
-  Scalar F_2_N_1(Scalar x, Scalar y, const Scalar* n) { return F_2_1_0(x, y) * n[0]; }
-  Scalar F_2_N_2(Scalar x, Scalar y, const Scalar* n) { return F_2_2_0(x, y) * n[0] * n[0]; }
+  Scalar F_2_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_2_1_0(x, y) * n[0]; }
+  Scalar F_2_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_2_2_0(x, y) * n[0] * n[0]; }
 
-  Scalar F_3_0_0(Scalar x, Scalar y) { return F_0_0_0(x, y) * F_1_0_0(x, y) - XY(); }
-  Scalar F_3_1_0(Scalar x, Scalar y) { return DxInv() * F_1_0_0(x, y); }
-  Scalar F_3_0_1(Scalar x, Scalar y) { return F_0_0_0(x, y) * DyInv(); }
-  Scalar F_3_1_1(Scalar x, Scalar y) { return DxInv() * DyInv(); }
+  Scalar F_3_0_0(Scalar x, Scalar y) const { return F_0_0_0(x, y) * F_1_0_0(x, y) - XY(); }
+  Scalar F_3_1_0(Scalar x, Scalar y) const { return DxInv() * F_1_0_0(x, y); }
+  Scalar F_3_0_1(Scalar x, Scalar y) const { return F_0_0_0(x, y) * DyInv(); }
+  Scalar F_3_1_1(Scalar x, Scalar y) const { return DxInv() * DyInv(); }
   // Normal Functions:
-  Scalar F_3_N_1(Scalar x, Scalar y, const Scalar* n) { return F_3_1_0(x, y) * n[0] + F_3_0_1(x, y) * n[1]; }
-  Scalar F_3_N_2(Scalar x, Scalar y, const Scalar* n) { return F_3_1_1(x, y) * n[0] * n[1] * 2; }
+  Scalar F_3_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_3_1_0(x, y) * n[0] + F_3_0_1(x, y) * n[1]; }
+  Scalar F_3_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_3_1_1(x, y) * n[0] * n[1] * 2; }
 
-  Scalar F_4_0_0(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) - YY(); }
-  Scalar F_4_0_1(Scalar x, Scalar y) { return F_1_0_0(x, y) * DyInv() * 2; }
-  Scalar F_4_0_2(Scalar x, Scalar y) { return std::pow(DyInv(), 2) * 2; }
+  Scalar F_4_0_0(Scalar x, Scalar y) const { return std::pow(F_1_0_0(x, y), 2) - YY(); }
+  Scalar F_4_0_1(Scalar x, Scalar y) const { return F_1_0_0(x, y) * DyInv() * 2; }
+  Scalar F_4_0_2(Scalar x, Scalar y) const { return std::pow(DyInv(), 2) * 2; }
   // Normal Functions:
-  Scalar F_4_N_1(Scalar x, Scalar y, const Scalar* n) { return F_4_0_1(x, y) * n[1]; }
-  Scalar F_4_N_2(Scalar x, Scalar y, const Scalar* n) { return F_4_0_2(x, y) * n[1] * n[1]; }
+  Scalar F_4_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_4_0_1(x, y) * n[1]; }
+  Scalar F_4_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_4_0_2(x, y) * n[1] * n[1]; }
 
-  Vector Functions(Scalar x, Scalar y) {
+  Vector Functions(Scalar x, Scalar y) const {
     Vector result;
     result << F_0_0_0(x, y), F_1_0_0(x, y), F_2_0_0(x, y), F_3_0_0(x, y), F_4_0_0(x, y);
     return result;
   }
-  BasisF GetFuncTable(Triangle<2>* cell, const Scalar* coord, const Scalar* normal) {
+  BasisF GetFuncTable(const Triangle<2>& cell, const Scalar* coord, const Scalar* normal) const {
     BasisF mat = BasisF::Zero();
-    mat(0, 0) = cell->F_0_0_0(coord[0], coord[1]), mat(0, 1) = cell->F_0_N_1(coord[0], coord[1], normal);
-    mat(1, 0) = cell->F_1_0_0(coord[0], coord[1]), mat(1, 1) = cell->F_1_N_1(coord[0], coord[1], normal);
-    mat(2, 0) = cell->F_2_0_0(coord[0], coord[1]), mat(2, 1) = cell->F_2_N_1(coord[0], coord[1], normal), mat(2, 2) = cell->F_2_N_2(coord[0], coord[1], normal);
-    mat(3, 0) = cell->F_3_0_0(coord[0], coord[1]), mat(3, 1) = cell->F_3_N_1(coord[0], coord[1], normal), mat(3, 2) = cell->F_3_N_2(coord[0], coord[1], normal);
-    mat(4, 0) = cell->F_4_0_0(coord[0], coord[1]), mat(4, 1) = cell->F_4_N_1(coord[0], coord[1], normal), mat(4, 2) = cell->F_4_N_2(coord[0], coord[1], normal);
+    mat(0, 0) = cell.F_0_0_0(coord[0], coord[1]), mat(0, 1) = cell.F_0_N_1(coord[0], coord[1], normal);
+    mat(1, 0) = cell.F_1_0_0(coord[0], coord[1]), mat(1, 1) = cell.F_1_N_1(coord[0], coord[1], normal);
+    mat(2, 0) = cell.F_2_0_0(coord[0], coord[1]), mat(2, 1) = cell.F_2_N_1(coord[0], coord[1], normal), mat(2, 2) = cell.F_2_N_2(coord[0], coord[1], normal);
+    mat(3, 0) = cell.F_3_0_0(coord[0], coord[1]), mat(3, 1) = cell.F_3_N_1(coord[0], coord[1], normal), mat(3, 2) = cell.F_3_N_2(coord[0], coord[1], normal);
+    mat(4, 0) = cell.F_4_0_0(coord[0], coord[1]), mat(4, 1) = cell.F_4_N_1(coord[0], coord[1], normal), mat(4, 2) = cell.F_4_N_2(coord[0], coord[1], normal);
     return mat;
-  }
-  // VR Initialize:
-  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<2>* that,
-                           Scalar distance, Scalar* n) {
-    Scalar p[3];
-    GetPArray(distance, 2, p);
-    Scalar coord[] = {x, y};
-    // this cell
-    BasisF i = GetFuncTable(this, coord, n);
-    // that cell
-    BasisF j = GetFuncTable(that, coord, n);
-    Matrix mat = Matrix::Zero();
-    for (int m = 0; m != 5; ++m) {
-      for (int n = 0; n != 5; ++n) {
-        for (int k = 0; k != 3; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
-      }
-    }
-    if (I() > that->I()) { mat.transposeInPlace(); }
-    return mat;
-  }
-  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<2>* that,
-                           Scalar distance, const PointType& ab, Scalar* n) {
-    Scalar p[3];
-    GetPArray(distance, 2, p);
-    Scalar coord[] = {x, y}, coord_ab[] = {x + ab.X(), y + ab.Y()};
-    // this cell
-    BasisF i = GetFuncTable(this, coord, n);
-    // that cell
-    BasisF j = GetFuncTable(that, coord_ab, n);
-    Matrix mat = Matrix::Zero();
-    for (int m = 0; m != 5; ++m) {
-      for (int n = 0; n != 5; ++n) {
-        for (int k = 0; k != 3; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
-      }
-    }
-    if (I() > that->I()) { mat.transposeInPlace(); }
-    return mat;
-  }
-  Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
-    return Functions(x, y) / distance;
   }
  private:
-  Scalar xx_;
-  Scalar xy_;
-  Scalar yy_;
+  Eigen::Matrix<Scalar, 3, 1> const_2;
 };
 
 template <>
 class Triangle<3> : public Triangle<2> {
  public:
   // Types:
-  using Matrix = Eigen::Matrix<Scalar, 9, 9>;
   using Vector = Eigen::Matrix<Scalar, 9, 1>;
   using BasisF = Eigen::Matrix<Scalar, 9, 4>;
   Triangle() = default;
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c) :
       Triangle<2>{id, a, b, c} {
-    auto measure_inv = 1 / Measure();
-    xxx_ = Integrate([&](auto point){
-      return std::pow(F_0_0_0(point.X(), point.Y()), 3); }) * measure_inv;
-    xxy_ = Integrate([&](auto point){
-      return std::pow(F_0_0_0(point.X(), point.Y()), 2) * F_1_0_0(point.X(), point.Y()); }) * measure_inv;
-    xyy_ = Integrate([&](auto point){
-      return F_0_0_0(point.X(), point.Y()) * std::pow(F_1_0_0(point.X(), point.Y()), 2); }) * measure_inv;
-    yyy_ = Integrate([&](auto point){
-      return std::pow(F_1_0_0(point.X(), point.Y()), 3); }) * measure_inv;
+    Scalar measure_inv = 1 / Measure();
+    const_3 = Eigen::Matrix<Scalar, 4, 1>::Zero();
+    auto func = [&](const auto& point){
+      Eigen::Matrix<Scalar, 4, 1> col;
+      col << std::pow(F_0_0_0(point.X(), point.Y()), 3),
+             std::pow(F_0_0_0(point.X(), point.Y()), 2) * F_1_0_0(point.X(), point.Y()),
+             F_0_0_0(point.X(), point.Y()) * std::pow(F_1_0_0(point.X(), point.Y()), 2),
+             std::pow(F_1_0_0(point.X(), point.Y()), 3);
+      return col;
+    };
+    Integrate(func, &const_3); const_3 *= measure_inv;
   }
   // Accessors:
   static constexpr int Degree() { return 3; }
-  Scalar XXX() const { return xxx_; }
-  Scalar XXY() const { return xxy_; }
-  Scalar XYY() const { return xyy_; }
-  Scalar YYY() const { return yyy_; }
+  Scalar XXX() const { return const_3(0); }
+  Scalar XXY() const { return const_3(1); }
+  Scalar XYY() const { return const_3(2); }
+  Scalar YYY() const { return const_3(3); }
   // Basis Functions:
-  Scalar F_5_0_0(Scalar x, Scalar y) { return std::pow(F_0_0_0(x, y), 3) - XXX(); }
-  Scalar F_5_1_0(Scalar x, Scalar y) { return std::pow(F_0_0_0(x, y), 2) * DxInv() * 3; }
-  Scalar F_5_2_0(Scalar x, Scalar y) { return F_0_0_0(x, y) * std::pow(DxInv(), 2) * 6; }
-  Scalar F_5_3_0(Scalar x, Scalar y) { return std::pow(DxInv(), 3) * 6; }
+  Scalar F_5_0_0(Scalar x, Scalar y) const { return std::pow(F_0_0_0(x, y), 3) - XXX(); }
+  Scalar F_5_1_0(Scalar x, Scalar y) const { return std::pow(F_0_0_0(x, y), 2) * DxInv() * 3; }
+  Scalar F_5_2_0(Scalar x, Scalar y) const { return F_0_0_0(x, y) * std::pow(DxInv(), 2) * 6; }
+  Scalar F_5_3_0(Scalar x, Scalar y) const { return std::pow(DxInv(), 3) * 6; }
   // Normal Functions:
-  Scalar F_5_N_1(Scalar x, Scalar y, const Scalar* n) { return F_5_1_0(x, y) * n[0]; }
-  Scalar F_5_N_2(Scalar x, Scalar y, const Scalar* n) { return F_5_2_0(x, y) * std::pow(n[0], 2); }
-  Scalar F_5_N_3(Scalar x, Scalar y, const Scalar* n) { return F_5_3_0(x, y) * std::pow(n[0], 3); }
+  Scalar F_5_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_5_1_0(x, y) * n[0]; }
+  Scalar F_5_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_5_2_0(x, y) * std::pow(n[0], 2); }
+  Scalar F_5_N_3(Scalar x, Scalar y, const Scalar* n) const { return F_5_3_0(x, y) * std::pow(n[0], 3); }
 
-  Scalar F_6_0_0(Scalar x, Scalar y) { return std::pow(F_0_0_0(x, y), 2) * F_1_0_0(x, y) - XXY(); }
-  Scalar F_6_1_0(Scalar x, Scalar y) { return F_0_0_0(x, y) * F_1_0_0(x, y) * DxInv() * 2; }
-  Scalar F_6_0_1(Scalar x, Scalar y) { return std::pow(F_0_0_0(x, y), 2) * DyInv(); }
-  Scalar F_6_2_0(Scalar x, Scalar y) { return F_1_0_0(x, y) * std::pow(DxInv(), 2) * 2; }
-  Scalar F_6_1_1(Scalar x, Scalar y) { return F_0_0_0(x, y) * DxInv() * DyInv() * 2; }
-  Scalar F_6_2_1(Scalar x, Scalar y) { return std::pow(DxInv(), 2) * DyInv() * 2; }
+  Scalar F_6_0_0(Scalar x, Scalar y) const { return std::pow(F_0_0_0(x, y), 2) * F_1_0_0(x, y) - XXY(); }
+  Scalar F_6_1_0(Scalar x, Scalar y) const { return F_0_0_0(x, y) * F_1_0_0(x, y) * DxInv() * 2; }
+  Scalar F_6_0_1(Scalar x, Scalar y) const { return std::pow(F_0_0_0(x, y), 2) * DyInv(); }
+  Scalar F_6_2_0(Scalar x, Scalar y) const { return F_1_0_0(x, y) * std::pow(DxInv(), 2) * 2; }
+  Scalar F_6_1_1(Scalar x, Scalar y) const { return F_0_0_0(x, y) * DxInv() * DyInv() * 2; }
+  Scalar F_6_2_1(Scalar x, Scalar y) const { return std::pow(DxInv(), 2) * DyInv() * 2; }
   // Normal Functions:
-  Scalar F_6_N_1(Scalar x, Scalar y, const Scalar* n) { return F_6_1_0(x, y) * n[0] + F_6_0_1(x, y) * n[1]; }
-  Scalar F_6_N_2(Scalar x, Scalar y, const Scalar* n) { return F_6_2_0(x, y) * std::pow(n[0], 2) + F_6_1_1(x, y) * n[0] * n[1] * 2; }
-  Scalar F_6_N_3(Scalar x, Scalar y, const Scalar* n) { return F_6_2_1(x, y) * std::pow(n[0], 2) * n[1] * 3; }
+  Scalar F_6_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_6_1_0(x, y) * n[0] + F_6_0_1(x, y) * n[1]; }
+  Scalar F_6_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_6_2_0(x, y) * std::pow(n[0], 2) + F_6_1_1(x, y) * n[0] * n[1] * 2; }
+  Scalar F_6_N_3(Scalar x, Scalar y, const Scalar* n) const { return F_6_2_1(x, y) * std::pow(n[0], 2) * n[1] * 3; }
 
-  Scalar F_7_0_0(Scalar x, Scalar y) { return F_0_0_0(x, y) * std::pow(F_1_0_0(x, y), 2) - XYY(); }
-  Scalar F_7_1_0(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) * DxInv(); }
-  Scalar F_7_0_1(Scalar x, Scalar y) { return F_0_0_0(x, y) * F_1_0_0(x, y) * DyInv() * 2; }
-  Scalar F_7_0_2(Scalar x, Scalar y) { return F_0_0_0(x, y) * std::pow(DyInv(), 2) * 2; }
-  Scalar F_7_1_1(Scalar x, Scalar y) { return F_1_0_0(x, y) * DxInv() * DyInv() * 2; }
-  Scalar F_7_1_2(Scalar x, Scalar y) { return DxInv() * std::pow(DyInv(), 2) * 2; }
+  Scalar F_7_0_0(Scalar x, Scalar y) const { return F_0_0_0(x, y) * std::pow(F_1_0_0(x, y), 2) - XYY(); }
+  Scalar F_7_1_0(Scalar x, Scalar y) const { return std::pow(F_1_0_0(x, y), 2) * DxInv(); }
+  Scalar F_7_0_1(Scalar x, Scalar y) const { return F_0_0_0(x, y) * F_1_0_0(x, y) * DyInv() * 2; }
+  Scalar F_7_0_2(Scalar x, Scalar y) const { return F_0_0_0(x, y) * std::pow(DyInv(), 2) * 2; }
+  Scalar F_7_1_1(Scalar x, Scalar y) const { return F_1_0_0(x, y) * DxInv() * DyInv() * 2; }
+  Scalar F_7_1_2(Scalar x, Scalar y) const { return DxInv() * std::pow(DyInv(), 2) * 2; }
   // Normal Functions:
-  Scalar F_7_N_1(Scalar x, Scalar y, const Scalar* n) { return F_7_1_0(x, y) * n[0] + F_7_0_1(x, y) * n[1]; }
-  Scalar F_7_N_2(Scalar x, Scalar y, const Scalar* n) { return F_7_1_1(x, y) * n[0] * n[1] * 2 + F_7_0_2(x, y) * std::pow(n[1], 2); }
-  Scalar F_7_N_3(Scalar x, Scalar y, const Scalar* n) { return F_7_1_2(x, y) * n[0] * std::pow(n[1], 2) * 3; }
+  Scalar F_7_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_7_1_0(x, y) * n[0] + F_7_0_1(x, y) * n[1]; }
+  Scalar F_7_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_7_1_1(x, y) * n[0] * n[1] * 2 + F_7_0_2(x, y) * std::pow(n[1], 2); }
+  Scalar F_7_N_3(Scalar x, Scalar y, const Scalar* n) const { return F_7_1_2(x, y) * n[0] * std::pow(n[1], 2) * 3; }
 
-  Scalar F_8_0_0(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 3) - YYY(); }
-  Scalar F_8_0_1(Scalar x, Scalar y) { return std::pow(F_1_0_0(x, y), 2) * DyInv() * 3; }
-  Scalar F_8_0_2(Scalar x, Scalar y) { return F_1_0_0(x, y) * std::pow(DyInv(), 2) * 6; }
-  Scalar F_8_0_3(Scalar x, Scalar y) { return std::pow(DyInv(), 3) * 6; }
+  Scalar F_8_0_0(Scalar x, Scalar y) const { return std::pow(F_1_0_0(x, y), 3) - YYY(); }
+  Scalar F_8_0_1(Scalar x, Scalar y) const { return std::pow(F_1_0_0(x, y), 2) * DyInv() * 3; }
+  Scalar F_8_0_2(Scalar x, Scalar y) const { return F_1_0_0(x, y) * std::pow(DyInv(), 2) * 6; }
+  Scalar F_8_0_3(Scalar x, Scalar y) const { return std::pow(DyInv(), 3) * 6; }
   // Normal Functions:
-  Scalar F_8_N_1(Scalar x, Scalar y, const Scalar* n) { return F_8_0_1(x, y) * n[1]; }
-  Scalar F_8_N_2(Scalar x, Scalar y, const Scalar* n) { return F_8_0_2(x, y) * std::pow(n[1], 2); }
-  Scalar F_8_N_3(Scalar x, Scalar y, const Scalar* n) { return F_8_0_3(x, y) * std::pow(n[1], 3); }
-  Vector Functions(Scalar x, Scalar y) {
+  Scalar F_8_N_1(Scalar x, Scalar y, const Scalar* n) const { return F_8_0_1(x, y) * n[1]; }
+  Scalar F_8_N_2(Scalar x, Scalar y, const Scalar* n) const { return F_8_0_2(x, y) * std::pow(n[1], 2); }
+  Scalar F_8_N_3(Scalar x, Scalar y, const Scalar* n) const { return F_8_0_3(x, y) * std::pow(n[1], 3); }
+  Vector Functions(Scalar x, Scalar y) const {
     Vector result;
     result << F_0_0_0(x, y), F_1_0_0(x, y), F_2_0_0(x, y), F_3_0_0(x, y), F_4_0_0(x, y),
               F_5_0_0(x, y), F_6_0_0(x, y), F_7_0_0(x, y), F_8_0_0(x, y);
     return result;
   }
-  BasisF GetFuncTable(Triangle<3>* cell, const Scalar* coord, const Scalar* normal) {
+  BasisF GetFuncTable(const Triangle<3>& cell, const Scalar* coord, const Scalar* normal) const {
     BasisF mat = BasisF::Zero();
     // One Degree:
-    mat(0, 0) = cell->F_0_0_0(coord[0], coord[1]), mat(0, 1) = cell->F_0_N_1(coord[0], coord[1], normal);
-    mat(1, 0) = cell->F_1_0_0(coord[0], coord[1]), mat(1, 1) = cell->F_1_N_1(coord[0], coord[1], normal);
-    // Two Degree"
-    mat(2, 0) = cell->F_2_0_0(coord[0], coord[1]), mat(2, 1) = cell->F_2_N_1(coord[0], coord[1], normal), mat(2, 2) = cell->F_2_N_2(coord[0], coord[1], normal);
-    mat(3, 0) = cell->F_3_0_0(coord[0], coord[1]), mat(3, 1) = cell->F_3_N_1(coord[0], coord[1], normal), mat(3, 2) = cell->F_3_N_2(coord[0], coord[1], normal);
-    mat(4, 0) = cell->F_4_0_0(coord[0], coord[1]), mat(4, 1) = cell->F_4_N_1(coord[0], coord[1], normal), mat(4, 2) = cell->F_4_N_2(coord[0], coord[1], normal);
+    mat(0, 0) = cell.F_0_0_0(coord[0], coord[1]), mat(0, 1) = cell.F_0_N_1(coord[0], coord[1], normal);
+    mat(1, 0) = cell.F_1_0_0(coord[0], coord[1]), mat(1, 1) = cell.F_1_N_1(coord[0], coord[1], normal);
+    // Two Degree:
+    mat(2, 0) = cell.F_2_0_0(coord[0], coord[1]), mat(2, 1) = cell.F_2_N_1(coord[0], coord[1], normal), mat(2, 2) = cell.F_2_N_2(coord[0], coord[1], normal);
+    mat(3, 0) = cell.F_3_0_0(coord[0], coord[1]), mat(3, 1) = cell.F_3_N_1(coord[0], coord[1], normal), mat(3, 2) = cell.F_3_N_2(coord[0], coord[1], normal);
+    mat(4, 0) = cell.F_4_0_0(coord[0], coord[1]), mat(4, 1) = cell.F_4_N_1(coord[0], coord[1], normal), mat(4, 2) = cell.F_4_N_2(coord[0], coord[1], normal);
     // Three Degree:
-    mat(5, 0) = cell->F_5_0_0(coord[0], coord[1]), mat(5, 1) = cell->F_5_N_1(coord[0], coord[1], normal), mat(5, 2) = cell->F_5_N_2(coord[0], coord[1], normal), mat(5, 3) = cell->F_5_N_3(coord[0], coord[1], normal);
-    mat(6, 0) = cell->F_6_0_0(coord[0], coord[1]), mat(6, 1) = cell->F_6_N_1(coord[0], coord[1], normal), mat(6, 2) = cell->F_6_N_2(coord[0], coord[1], normal), mat(6, 3) = cell->F_6_N_3(coord[0], coord[1], normal);
-    mat(7, 0) = cell->F_7_0_0(coord[0], coord[1]), mat(7, 1) = cell->F_7_N_1(coord[0], coord[1], normal), mat(7, 2) = cell->F_7_N_2(coord[0], coord[1], normal), mat(7, 3) = cell->F_7_N_3(coord[0], coord[1], normal);
-    mat(8, 0) = cell->F_8_0_0(coord[0], coord[1]), mat(8, 1) = cell->F_8_N_1(coord[0], coord[1], normal), mat(8, 2) = cell->F_8_N_2(coord[0], coord[1], normal), mat(8, 3) = cell->F_8_N_3(coord[0], coord[1], normal);
+    mat(5, 0) = cell.F_5_0_0(coord[0], coord[1]), mat(5, 1) = cell.F_5_N_1(coord[0], coord[1], normal), mat(5, 2) = cell.F_5_N_2(coord[0], coord[1], normal), mat(5, 3) = cell.F_5_N_3(coord[0], coord[1], normal);
+    mat(6, 0) = cell.F_6_0_0(coord[0], coord[1]), mat(6, 1) = cell.F_6_N_1(coord[0], coord[1], normal), mat(6, 2) = cell.F_6_N_2(coord[0], coord[1], normal), mat(6, 3) = cell.F_6_N_3(coord[0], coord[1], normal);
+    mat(7, 0) = cell.F_7_0_0(coord[0], coord[1]), mat(7, 1) = cell.F_7_N_1(coord[0], coord[1], normal), mat(7, 2) = cell.F_7_N_2(coord[0], coord[1], normal), mat(7, 3) = cell.F_7_N_3(coord[0], coord[1], normal);
+    mat(8, 0) = cell.F_8_0_0(coord[0], coord[1]), mat(8, 1) = cell.F_8_N_1(coord[0], coord[1], normal), mat(8, 2) = cell.F_8_N_2(coord[0], coord[1], normal), mat(8, 3) = cell.F_8_N_3(coord[0], coord[1], normal);
     return mat;
-  }
-  // VR Initialize:
-  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<3>* that,
-                           Scalar distance, Scalar* n) {
-    Scalar p[4];
-    GetPArray(distance, 3, p);
-    Scalar coord[] = {x, y};
-    // this cell
-    BasisF i = GetFuncTable(this, coord, n);
-    // that cell
-    BasisF j = GetFuncTable(that, coord, n);
-    Matrix mat = Matrix::Zero();
-    for (int m = 0; m != 9; ++m) {
-      for (int n = 0; n != 9; ++n) {
-        for (int k = 0; k != 4; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
-      }
-    }
-    if (I() > that->I()) { mat.transposeInPlace(); }
-    return mat;
-  }
-  Matrix InitializeMatWith(Scalar x, Scalar y, Triangle<3>* that,
-                           Scalar distance, const PointType& ab, Scalar* n) {
-    Scalar p[4];
-    GetPArray(distance, 3, p);
-    Scalar coord[] = {x, y}, coord_ab[] = {x + ab.X(), y + ab.Y()};
-    // this cell
-    BasisF i = GetFuncTable(this, coord, n);
-    // that cell
-    BasisF j = GetFuncTable(that, coord_ab, n);
-    Matrix mat = Matrix::Zero();
-    for (int m = 0; m != 9; ++m) {
-      for (int n = 0; n != 9; ++n) {
-        for (int k = 0; k != 4; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
-      }
-    }
-    if (I() > that->I()) { mat.transposeInPlace(); }
-    return mat;
-  }
-  Vector InitializeVecWith(Scalar x, Scalar y, Scalar distance) {
-    return Functions(x, y) / distance;
   }
  private:
-  Scalar xxx_;
-  Scalar xxy_;
-  Scalar xyy_;
-  Scalar yyy_;
+  Eigen::Matrix<Scalar, 4, 1> const_3;
 };
 
 }  // namespace element

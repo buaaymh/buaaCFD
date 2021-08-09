@@ -43,15 +43,6 @@ class Edge {
   void ForEachQuadPoint(Visitor&& visitor) const {
     for (auto& point : quad_points_) { visitor(point); }
   }
-  template <class Integrand>
-  Scalar Integrate(Integrand&& integrand) const {
-    Scalar result{0.0};
-    for (int i = 0; i < num_quad_points; ++i) {
-      result += integrand(quad_points_[i]) * gauss_.weights[i];
-    }
-    result *= 0.5 * Measure();
-    return result;
-  }
   template <class Value, class Integrand>
   void Integrate(Integrand&& integrand, Value* value) const {
     for (int i = 0; i < num_quad_points; ++i) {
@@ -61,7 +52,7 @@ class Edge {
   }
 
  private:
-  PointType LocalToGlobal(Scalar x_local) {
+  PointType LocalToGlobal(Scalar x_local) const {
     auto point = ((Head() + Tail()) + (Tail() - Head()) * x_local) * 0.5;
     return PointType{point(0), point(1)};
   }

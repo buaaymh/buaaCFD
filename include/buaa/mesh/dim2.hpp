@@ -12,6 +12,7 @@
 #include <memory>
 #include <utility>
 #include <iostream>
+#include <omp.h>
 
 #include "buaa/element/node.hpp"
 #include "buaa/mesh/edge.hpp"
@@ -57,6 +58,16 @@ class Mesh {
   }
   template <class Visitor>
   void ForEachCell(Visitor&& visitor) const {
+    for (auto& cell_ptr : id_to_cell_) { visitor(*cell_ptr); }
+  }
+  template <class Visitor>
+  void ForEachEdgeParallel(Visitor&& visitor) const {
+    #pragma omp parallel for
+    for (auto& edge_ptr : id_to_edge_) { visitor(*edge_ptr); }
+  }
+  template <class Visitor>
+  void ForEachCellParallel(Visitor&& visitor) const {
+    #pragma omp parallel for
     for (auto& cell_ptr : id_to_cell_) { visitor(*cell_ptr); }
   }
   // Emplace primitive objects.

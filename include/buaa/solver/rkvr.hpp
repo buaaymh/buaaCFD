@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
+#include <omp.h>
 #include <set>
 #include <stdio.h>
 #include <string>
@@ -46,7 +47,7 @@ class Rkvr {
   // Mutators:
   template <class Visitor>
   void SetInitialState(Visitor&& visitor) {
-    mesh_->ForEachCell(visitor);
+    mesh_->ForEachCellParallel(visitor);
   }
   void SetTimeSteps(Scalar duration, int n_steps, int refresh_rate) {
     duration_ = duration;
@@ -84,9 +85,10 @@ class Rkvr {
       }
     }
   }
- private:
+//  private:
+ public:
   bool WriteCurrentFrame(std::string const& filename) {
-    mesh_->ForEachCell([&](CellType& cell) {
+    mesh_->ForEachCellParallel([&](CellType& cell) {
       cell.data.Write();
     });
     writer_.SetMesh(mesh_.get());
@@ -94,9 +96,6 @@ class Rkvr {
   }
   void Preprocess() {
     mesh_->ForEachEdge([&](EdgeType& edge){
-      auto n1 = edge.GetNormalX();
-      auto n2 = edge.GetNormalY();
-      edge.data.riemann.Rotate(n1, n2);
       auto cell_l = edge.GetPositiveSide();
       auto cell_r = edge.GetNegativeSide();
       if (cell_l && cell_r) {
@@ -109,20 +108,20 @@ class Rkvr {
   }
   void RungeKutta3Stepper() {
     GetFluxOnEachEdge(0);
-    mesh_->ForEachCell([&](CellType& cell) {
+    mesh_->ForEachCellParallel([&](CellType& cell) {
       auto rhs = GetRHS(cell);
       cell.data.u_stages[1] = cell.data.u_stages[0] +
                               rhs * step_size_ / cell.Measure();
     });
     GetFluxOnEachEdge(1);
-    mesh_->ForEachCell([&](CellType& cell) {
+    mesh_->ForEachCellParallel([&](CellType& cell) {
       auto rhs = GetRHS(cell);
       cell.data.u_stages[2] = cell.data.u_stages[0] * 0.75 + 
                              (cell.data.u_stages[1] +
                               rhs * step_size_ / cell.Measure()) * 0.25;
     });
     GetFluxOnEachEdge(2);
-    mesh_->ForEachCell([&](CellType& cell) {
+    mesh_->ForEachCellParallel([&](CellType& cell) {
       auto rhs = GetRHS(cell);
       cell.data.u_stages[0] = cell.data.u_stages[0] / 3 + 
                              (cell.data.u_stages[2] +
@@ -130,18 +129,17 @@ class Rkvr {
     });
   }
   void GetFluxOnInteriorEdge(EdgeType& edge, int stage) {
-    auto& riemann_ = edge.data.riemann;
     auto cell_l = edge.GetPositiveSide();
     auto cell_r = edge.GetNegativeSide();
     edge.data.flux = FluxType(0);
     edge.Integrate([&](const PointType& point) {
         auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
         auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
-        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+        auto a = edge.GetNormalX();
+        return Riemann::GetFlux(u_l, u_r, a);
       }, &(edge.data.flux));
   }
   void GetFluxOnPeriodicEdge(EdgeType& edge_a, EdgeType& edge_b, int stage) {
-    auto& riemann_ = edge_a.data.riemann;
     auto vec_ab = PointType(edge_b.Center() - edge_a.Center());
     auto cell_l = edge_a.GetPositiveSide();
     auto cell_r = edge_a.GetNegativeSide();
@@ -151,7 +149,8 @@ class Rkvr {
         auto point_ab = PointType(point + vec_ab);
         auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point);
         auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point_ab);
-        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+        auto a = edge_a.GetNormalX();
+        return Riemann::GetFlux(u_l, u_r, a);
       }, &(edge_a.data.flux));
     } else {
       edge_a.data.flux = FluxType(0);
@@ -159,7 +158,8 @@ class Rkvr {
         auto point_ab = PointType(point + vec_ab);
         auto const& u_l = cell_l->data.u_stages[stage] + cell_l->Polynomial(point_ab);
         auto const& u_r = cell_r->data.u_stages[stage] + cell_r->Polynomial(point);
-        return riemann_.GetFluxOnTimeAxis(u_l, u_r);
+        auto a = edge_a.GetNormalX();
+        return Riemann::GetFlux(u_l, u_r, a);
       }, &(edge_a.data.flux));
     }
     if (cell_l == edge_b.GetPositiveSide()) { edge_b.data.flux = edge_a.data.flux; }
@@ -191,14 +191,14 @@ class Rkvr {
       edge_a.InitializeBmat(vec_ab);
       edge_b.b_matrix = edge_a.b_matrix;
     });
-    mesh_->ForEachCell([&](CellType& cell) {
+    mesh_->ForEachCellParallel([&](CellType& cell) {
       cell.InitializeAmatInv();
       cell.InitializeBvecMat();
       cell.data.Initialize();
     });
   }
   void UpdateCoefficients(int stage) {
-    mesh_->ForEachCell([&](CellType& cell) {
+    mesh_->ForEachCellParallel([&](CellType& cell) {
       Eigen::Matrix<Scalar, 3, 1> vec;
       int i = 0;
       cell.ForEachEdge([&](EdgeType& edge) {
@@ -206,8 +206,8 @@ class Rkvr {
       });
       cell.b_vector = cell.b_vector_mat * vec;
     });
-    for (int i = 0; i < 25; ++i) {
-      mesh_->ForEachCell([&](CellType& cell) {
+    for (int i = 0; i < 9; ++i) {
+      mesh_->ForEachCellParallel([&](CellType& cell) {
         cell.data.coefficients *= -0.3;
         Vector temp = Vector::Zero();
         cell.ForEachEdge([&](EdgeType& edge) {

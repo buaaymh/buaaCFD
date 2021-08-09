@@ -10,7 +10,7 @@
 
 #include "buaa/mesh/data.hpp"
 #include "buaa/mesh/dim2.hpp"
-#include "buaa/riemann/rotated.hpp"
+#include "buaa/riemann/linear.hpp"
 #include "buaa/solver/rkvr.hpp"
 #include "buaa/data/path.hpp"  // defines TEST_DATA_DIR
 
@@ -24,14 +24,11 @@ class VrfvTest : public ::testing::Test {
   // Types:
   using Stages = Eigen::Matrix<Scalar, 3, 1>;
   using Coefficients = Eigen::Matrix<Scalar, num_coefficients, 1>;
-  using Riemann = buaa::riemann::RotatedLinear;
-  using Jacobi = typename Riemann::Jacobi;
+  using Riemann = buaa::riemann::Linear;
   using State = typename Riemann::State;
   using Flux = typename Riemann::Flux;
   struct EdgeData : public mesh::Empty {
-    Scalar distance;
     Flux flux;
-    Riemann riemann;
   };
   struct CellData : public mesh::Data<
       2/* dims */, 1/* scalars */, 0/* vectors */> {
@@ -78,16 +75,17 @@ TEST_F(VrfvTest, Constructor) {
   model.SetPeriodicBoundary("left", "right");
   // Set Initial Conditions:
   model.SetInitialState([&](Cell& cell) {
-    cell.data.u_stages[0] = cell.Integrate([&](auto point){
-        // return std::sin(point.X() * acos(0.0) * 2);}) / cell.Measure();
-        return point.X() * 0.5;}) / cell.Measure();
+    Scalar value = 0;
+    cell.Integrate([&](const auto& point){
+      return std::sin(point.X() * acos(0.0) * 2);}, &value);
+    cell.data.u_stages[0] = value / cell.Measure();
   });
   model.InitializeVrMatrix();
   model.UpdateCoefficients(0);
   system(("rm -rf " + output_dir).c_str());
   system(("mkdir -p " + output_dir).c_str());
   auto filename = output_dir + std::string("/vrfv.vtu");
-  auto pass = model.WriteCurrentFrame(filename);
+  // auto pass = model.WriteCurrentFrame(filename);
 }
 
 }  // namespace solver

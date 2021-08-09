@@ -2,6 +2,8 @@
 #ifndef BUAA_SOLVER_BOUNDARY_HPP_
 #define BUAA_SOLVER_BOUNDARY_HPP_
 
+#include <omp.h>
+
 #include "buaa/mesh/dim2.hpp"
 
 namespace buaa {
@@ -52,6 +54,7 @@ class Manager {
   // Iterators:
   template<class Visitor>
   void ForEachInteriorEdge(Visitor&& visit) {
+    #pragma omp parallel for
     for (auto& edge : interior_edges_) {
       visit(*edge);
     }
@@ -59,6 +62,7 @@ class Manager {
   template<class Visitor>
   void ForEachPeriodicEdge(Visitor&& visit) {
     for (auto& [left, right] : periodic_part_pairs_) {
+      #pragma omp parallel for
       for (int i = 0; i < left->size(); i++) {
         visit(*(left->at(i)), *(right->at(i)));
       }

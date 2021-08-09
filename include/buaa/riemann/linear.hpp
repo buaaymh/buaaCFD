@@ -9,9 +9,10 @@ namespace riemann {
 
 class Linear {
  public:
+  using State = Scalar;
+  using Flux = Scalar;
   // Get F of U_l and U_r
-  static Scalar GetFlux(Scalar const& left, Scalar const& right,
-                           Scalar const& a) {
+  static Scalar GetFlux(Scalar const& left, Scalar const& right, Scalar const& a) {
     if (0 < a) { return left * a; }
     else { return right* a; }
   }

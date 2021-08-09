@@ -2,12 +2,11 @@
 #ifndef INCLUDE_BUAA_ELEMENT_GAUSS_HPP_
 #define INCLUDE_BUAA_ELEMENT_GAUSS_HPP_
 
+#include "buaa/element/point.hpp"
 #include <array>
 
 namespace buaa {
 namespace element {
-
-using Scalar = double;
 
 template <int kPoint>
 struct Gauss;

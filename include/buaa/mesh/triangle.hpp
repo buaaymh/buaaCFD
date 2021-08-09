@@ -25,17 +25,19 @@ class Triangle;
 template <int kDegree, class EdgeData, class CellData>
 class Triangle : public element::Triangle<kDegree> {
  private:
-  static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
+  static constexpr int nCoef = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Types:
   using Base = element::Triangle<kDegree>;
+  using CellType = Triangle<kDegree, EdgeData, CellData>;
   using EdgeType = Edge<kDegree, EdgeData, CellData>;
   using NodeType = element::Node<2>;
   using PointType = element::Point<2>;
-  using Matrix = Eigen::Matrix<Scalar, num_coefficients, num_coefficients>;
-  using Vector = Eigen::Matrix<Scalar, num_coefficients, 1>;
-  using Matrix3V = Eigen::Matrix<Scalar, num_coefficients, 3>;
+  using Matrix = Eigen::Matrix<Scalar, nCoef, nCoef>;
+  using Vector = Eigen::Matrix<Scalar, nCoef, 1>;
+  using Matrix3V = Eigen::Matrix<Scalar, nCoef, 3>;
+  using BasisF = Eigen::Matrix<Scalar, nCoef, kDegree+1>;
   using Data = CellData;
   // Constructors:
   Triangle() = default;
@@ -43,7 +45,7 @@ class Triangle : public element::Triangle<kDegree> {
       EdgeType* ab, EdgeType* bc, EdgeType* ca) : Base(id, a, b, c),
       edges_{ab, bc, ca} {}
   // Accessors:
-  static constexpr int CountCoefficients() { return num_coefficients; }
+  static constexpr int CountCoef() { return nCoef; }
   bool Contains(const EdgeType* edge) const {
     for (int i = 0; i < 3; ++i) {
       if (edges_[i] == edge) { return true; }
@@ -60,8 +62,7 @@ class Triangle : public element::Triangle<kDegree> {
       Matrix temp = Matrix::Zero();
       Scalar normal[2] = {edge.GetNormalX(), edge.GetNormalY()};
       edge.Integrate([&](const PointType& point) {
-        return this->InitializeMatWith(point.X(), point.Y(), this,
-                                       edge.distance, normal);
+        return GetMatAt(point.X(), point.Y(), *this, edge.distance, normal);
       }, &temp);
       a_matrix += temp;
     });
@@ -72,14 +73,54 @@ class Triangle : public element::Triangle<kDegree> {
     for (int i = 0; i < 3; ++i) {
       Vector temp = Vector::Zero();
       edges_[i]->Integrate([&](const PointType& point) {
-        return this->InitializeVecWith(point.X(), point.Y(), edges_[i]->distance);
+        return GetVecAt(point.X(), point.Y(), edges_[i]->distance);
       }, &temp);
       b_vector_mat.col(i) = temp;
     }
   }
+  static void GetPArray(Scalar distance, int degree, Scalar* p) {
+   for (int i = 0; i <= degree; ++i)
+      p[i] = std::pow(distance, 2*i-1) / std::pow(Factorial(i), 2);
+  }
+  Matrix GetMatAt(Scalar x, Scalar y, const CellType& that, Scalar distance,
+                  Scalar* n) const {
+    Scalar p[kDegree+1]; GetPArray(distance, kDegree, p); Scalar coord[] = {x, y};
+    // this cell
+    BasisF i = GetFuncTable(*this, coord, n);
+    // that cell
+    BasisF j = GetFuncTable(that, coord, n);
+    Matrix mat = Matrix::Zero();
+    for (int m = 0; m != nCoef; ++m) {
+      for (int n = 0; n != nCoef; ++n) {
+        for (int k = 0; k != kDegree+1; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
+      }
+    }
+    if (Base::I() > that.I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Matrix GetMatAt(Scalar x, Scalar y, const CellType& that, Scalar distance,
+                  const PointType& ab, Scalar* n) const {
+    Scalar p[kDegree+1]; GetPArray(distance, kDegree, p);
+    Scalar coord[] = {x, y}, coord_ab[] = {x + ab.X(), y + ab.Y()};
+    // this cell
+    BasisF i = GetFuncTable(*this, coord, n);
+    // that cell
+    BasisF j = GetFuncTable(that, coord_ab, n);
+    Matrix mat = Matrix::Zero();
+    for (int m = 0; m != nCoef; ++m) {
+      for (int n = 0; n != nCoef; ++n) {
+        for (int k = 0; k != kDegree+1; ++k) mat(m, n) += p[k] * i(n, k) * j(m, k);
+      }
+    }
+    if (Base::I() > that.I()) { mat.transposeInPlace(); }
+    return mat;
+  }
+  Vector GetVecAt(Scalar x, Scalar y, Scalar distance) const {
+    return Functions(x, y) / distance;
+  }
   // Polynomial:
-  Scalar Polynomial(const PointType& point) {
-    return data.coefficients.dot(this->Functions(point.X(), point.Y()));
+  Scalar Polynomial(const PointType& point) const {
+    return this->Functions(point.X(), point.Y()).transpose() * data.coefficients;
   }
   // Data:
   static std::array<std::string, CellData::CountScalars()> scalar_names;

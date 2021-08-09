@@ -9,7 +9,6 @@
 namespace buaa {
 namespace element {
 
-using Scalar = double;
 using Id = std::size_t;
 
 template <int kDim>

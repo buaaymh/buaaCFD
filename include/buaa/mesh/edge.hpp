@@ -25,7 +25,7 @@ class Edge;
 template <int kDegree, class EdgeData, class CellData>
 class Edge : public element::Edge<kDegree> {
  private:
-  static constexpr int num_coefficients = (kDegree+1) * (kDegree+2) / 2 - 1;
+  static constexpr int nCoef = (kDegree+1) * (kDegree+2) / 2 - 1;
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   // Types:
@@ -47,7 +47,7 @@ class Edge : public element::Edge<kDegree> {
     if (cell == positive_side_) { return negative_side_; }
     else { return positive_side_; }
   }
-  static constexpr int CountCoefficients() { return num_coefficients; }
+  static constexpr int CountCoef() { return nCoef; }
   Scalar GetNormalX() const { return (Base::Tail().Y() - Base::Head().Y()) / Base::Measure(); }
   Scalar GetNormalY() const { return (Base::Head().X() - Base::Tail().X()) / Base::Measure(); }
   // Mutators:
@@ -57,20 +57,20 @@ class Edge : public element::Edge<kDegree> {
   void InitializeBmat() {
     Scalar normal[2] = {GetNormalX(), GetNormalY()};
     this->Integrate([&](const Point& point) {
-      return positive_side_->InitializeMatWith(point.X(), point.Y(),
-                                               negative_side_, distance, normal);
+      return positive_side_->GetMatAt(point.X(), point.Y(), *negative_side_,
+                                      distance, normal);
     }, &b_matrix);
   }
   void InitializeBmat(const Point& vec_ab) {
     Scalar normal[2] = {GetNormalX(), GetNormalY()};
     if (positive_side_->Contains(this)) {
       this->Integrate([&](const Point& point) {
-        return positive_side_->InitializeMatWith(point.X(), point.Y(), negative_side_,
+        return positive_side_->GetMatAt(point.X(), point.Y(), *negative_side_,
                                                  distance, vec_ab, normal);
       }, &b_matrix);
     } else {
       this->Integrate([&](const Point& point) {
-        return negative_side_->InitializeMatWith(point.X(), point.Y(), positive_side_,
+        return negative_side_->GetMatAt(point.X(), point.Y(), *positive_side_,
                                                  distance, vec_ab, normal);
       }, &b_matrix);
     }

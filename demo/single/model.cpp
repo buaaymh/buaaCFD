@@ -10,7 +10,7 @@
 #include "buaa/mesh/dim2.hpp"
 #include "buaa/mesh/vtk/reader.hpp"
 #include "buaa/mesh/vtk/writer.hpp"
-#include "buaa/riemann/rotated.hpp"
+#include "buaa/riemann/linear.hpp"
 #include "buaa/solver/rkvr.hpp"
 #include "buaa/data/path.hpp"  // defines TEST_DATA_DIR
 
@@ -35,8 +35,6 @@ class SingleWaveTest {
     auto u_l = State{-1.0};
     auto u_r = State{+1.0};
     auto model = Model(model_name_);
-    Riemann::global_coefficient[0] = 1.0;
-    Riemann::global_coefficient[1] = 0.0;
     model.ReadMesh(test_data_dir_ + mesh_name_);
     // Set Boundary Conditions:
     constexpr auto eps = 1e-5;
@@ -56,9 +54,21 @@ class SingleWaveTest {
     model.SetPeriodicBoundary("left", "right");
     // Set Initial Conditions:
     model.SetInitialState([&](Cell& cell) {
-      cell.data.u_stages[0] = cell.Integrate([&](auto point){
-          return std::sin(point.X() * acos(0.0) * 4);}) / cell.Measure();
+      Scalar value = 0;
+      cell.Integrate([&](const auto& point){
+          return std::sin(point.X() * acos(0.0) * 4);}, &value);
+      cell.data.u_stages[0] = value / cell.Measure();
     });
+    // model.SetInitialState([&](Cell& cell) {
+    //   cell.data.u_stages[0] = cell.Integrate([&](auto point){
+    //       Scalar u = 0.0;
+    //       if (point.X() < 0.0) {
+    //         u = -1.0;
+    //       } else {
+    //         u = 1.0;
+    //       }
+    //       return u;}) / cell.Measure();
+    // });
     model.SetTimeSteps(duration_, n_steps_, output_rate_);
     auto output_dir = std::string("result/demo/") + model_name_;
     model.SetOutputDir(output_dir + "/");
@@ -69,17 +79,15 @@ class SingleWaveTest {
   }
 
  protected:
-  using Jacobi = typename Riemann::Jacobi;
   using State = typename Riemann::State;
   using Flux = typename Riemann::Flux;
   static constexpr int degree = 3;
-  static constexpr int num_coefficients = (degree+1) * (degree+2) / 2 - 1;
+  static constexpr int nCoef = (degree+1) * (degree+2) / 2 - 1;
   using Stages = Eigen::Matrix<Scalar, 3, 1>;
-  using Coefficients = Eigen::Matrix<Scalar, num_coefficients, 1>;
+  using Coefficients = Eigen::Matrix<Scalar, nCoef, 1>;
   // Types:
   struct EdgeData : public mesh::Empty {
     Flux flux;
-    Riemann riemann;
   };
   struct CellData : public mesh::Data<
       2/* dims */, 1/* scalars */, 0/* vectors */> {
@@ -122,7 +130,7 @@ int main(int argc, char* argv[]) {
     std::cout << "<output_rate> ";
     std::cout << std::endl;
   } else if (argc == 7) {
-    using Linear = buaa::riemann::RotatedLinear;
+    using Linear = buaa::riemann::Linear;
     using LinearTest = buaa::solver::SingleWaveTest<Linear>;
     if (std::strcmp(argv[1], "linear") == 0) {
       auto model = LinearTest(argv);

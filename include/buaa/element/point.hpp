@@ -2,8 +2,6 @@
 #ifndef INCLUDE_BUAA_ELEMENT_POINT_HPP_
 #define INCLUDE_BUAA_ELEMENT_POINT_HPP_
 
-#include <vector>
-
 #include <Eigen/Dense>
 
 #include "buaa/riemann/types.hpp"

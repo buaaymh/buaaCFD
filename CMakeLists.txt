@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_C_COMPILER "/usr/local/bin/gcc-11")
 set(CMAKE_CXX_COMPILER "/usr/local/bin/g++-11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 set(CMAKE_BUILD_TYPE "Debug")
 project(buaaCFD)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS -fpermissive)
+
+add_definitions(-w)
 
 # GoogleTest related settings
 option(${PROJECT_NAME}_SUBMODULE_GOOGLETEST "Add GoogleTest as a git submodule." "ON")
@@ -58,6 +62,13 @@ if (${PROJECT_NAME}_ENABLE_VTK)
   endif ()
 endif (${PROJECT_NAME}_ENABLE_VTK)
 
+find_package(OpenMP)
+if(OPENMP_FOUND)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 # add_subdirectory(ThirdParty/eigen)
 set(EIGEN_INC "${PROJECT_SOURCE_DIR}/ThirdParty/eigen")
 include_directories(${EIGEN_INC})
@@ -77,8 +88,3 @@ if (${PROJECT_NAME}_BUILD_TESTS)
 endif ()
 
 add_subdirectory(demo)
-
-# option(${PROJECT_NAME}_BUILD_DEMOS "Build demos for this project." "ON")
-# if (${PROJECT_NAME}_BUILD_DEMOS)
-#   add_subdirectory(demo)
-# endif (${PROJECT_NAME}_BUILD_DEMOS)
