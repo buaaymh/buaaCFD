@@ -6,7 +6,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 set(CMAKE_BUILD_TYPE "Debug")
 project(buaaCFD)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS -fpermissive)
 
 add_definitions(-w)
 
@@ -15,7 +14,7 @@ option(${PROJECT_NAME}_SUBMODULE_GOOGLETEST "Add GoogleTest as a git submodule."
 # Prevent overriding the parent project's compiler/linker settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 if (${PROJECT_NAME}_SUBMODULE_GOOGLETEST)
-  add_subdirectory(ThirdParty/GoogleTest EXCLUDE_FROM_ALL)
+  add_subdirectory(GoogleTest EXCLUDE_FROM_ALL)
 else (${PROJECT_NAME}_SUBMODULE_GOOGLETEST)
   # Download and unpack `googletest` at configure time
   configure_file(CMakeLists.txt.in googletest/download/CMakeLists.txt)
@@ -69,8 +68,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-# add_subdirectory(ThirdParty/eigen)
-set(EIGEN_INC "${PROJECT_SOURCE_DIR}/ThirdParty/eigen")
+set(EIGEN_INC "${PROJECT_SOURCE_DIR}/eigen")
 include_directories(${EIGEN_INC})
 
 # Additional headers that depends on ${PROJECT_SOURCE_DIR}
@@ -87,4 +85,7 @@ if (${PROJECT_NAME}_BUILD_TESTS)
   add_subdirectory(test)
 endif ()
 
-add_subdirectory(demo)
+option(${PROJECT_NAME}_BUILD_DEMOS "Build example for this project." "ON")
+if (${PROJECT_NAME}_BUILD_DEMOS)
+  add_subdirectory(demo)
+endif ()
