@@ -64,6 +64,7 @@ class Triangle<0> {
   // Geometric methods:
   Scalar Measure() const { return measure_; }
   const PointType& Center() const { return center_; }
+  void Move(const PointType& begToEnd) { center_ += begToEnd; }
   // Factorial
   static Scalar Factorial(int p) {
     int fac = 1;

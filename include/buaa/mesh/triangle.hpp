@@ -44,6 +44,8 @@ class Triangle : public element::Triangle<kDegree> {
   Triangle(Id id, const NodeType& a, const NodeType& b, const NodeType& c,
       EdgeType* ab, EdgeType* bc, EdgeType* ca) : Base(id, a, b, c),
       edges_{ab, bc, ca} {}
+  Triangle(const CellType&) = default;
+  Triangle& operator=(const Triangle&);
   // Accessors:
   static constexpr int CountCoef() { return nCoef; }
   bool Contains(const EdgeType* edge) const {

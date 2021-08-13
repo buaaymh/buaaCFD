@@ -164,6 +164,10 @@ TEST_F(MeshTest, GetSide) {
   cells.emplace_back(mesh.EmplaceCell(1, {0, 2, 3}));
   EXPECT_EQ(mesh.CountCells(), 2);
   EXPECT_EQ(mesh.CountEdges(), edges.size());
+  // Add Ghost Cells
+  auto move = PointType{1, 0};
+  auto ghost_l = *cells[0]; ghost_l.Move(move);
+  auto ghost_r = *cells[1]; ghost_l.Move(move);
   // Check each edge's positive side and negative side:
   // edges[0] == {nodes[0], nodes[1]}
   EXPECT_EQ(edges[0]->GetPositiveSide(), cells[0]);

@@ -48,6 +48,15 @@ TEST_F(TriangleTest, OneDegreeCell) {
   EXPECT_EQ(cell.F_0_1_0(x, y), 2);
   EXPECT_EQ(cell.F_1_0_0(x, y), (y - y_c) * cell.DyInv());
   EXPECT_EQ(cell.F_1_0_1(x, y), 1);
+  // Move:
+  PointType move{1.0, 2.0};
+  x_c = cell.Center().X() + 1.0;
+  y_c = cell.Center().Y() + 2.0;
+  cell.Move(move);
+  EXPECT_EQ(cell.F_0_0_0(x, y), (x - x_c) * cell.DxInv());
+  EXPECT_EQ(cell.F_0_1_0(x, y), 2);
+  EXPECT_EQ(cell.F_1_0_0(x, y), (y - y_c) * cell.DyInv());
+  EXPECT_EQ(cell.F_1_0_1(x, y), 1);
 }
 TEST_F(TriangleTest, TwoDegreeCell) {
   auto cell = T2(id, a, b, c);
